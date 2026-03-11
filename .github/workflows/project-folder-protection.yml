@@ -1,0 +1,34 @@
+name: Project Folder Protection
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  protect-projects:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Detect project folder changes
+        run: |
+          git fetch origin main
+
+          CHANGED=$(git diff --name-only origin/main)
+
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          for file in $CHANGED
+          do
+            if [[ $file == projects/* ]]; then
+              echo "Project folders are protected."
+              echo "Only repository owners/admins can modify them."
+              exit 1
+            fi
+          done
+
+          echo "No protected project folders modified."

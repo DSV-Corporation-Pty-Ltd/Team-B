@@ -1,0 +1,43 @@
+name: Developer Folder Permission Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  folder-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          git fetch origin main
+          CHANGED_FILES=$(git diff --name-only origin/main)
+          echo "$CHANGED_FILES" > changed.txt
+          cat changed.txt
+
+      - name: Validate developer folder access
+        run: |
+          ACTOR=${{ github.actor }}
+
+          echo "GitHub Actor: $ACTOR"
+
+          while read file; do
+            if [[ $file == developers/* ]]; then
+
+              OWNER=$(echo $file | cut -d '/' -f2)
+
+              if [[ "$ACTOR" != "$OWNER" ]]; then
+                echo "$ACTOR cannot modify $OWNER folder"
+                exit 1
+              fi
+
+            fi
+          done < changed.txt
+
+          echo "Folder permissions valid"

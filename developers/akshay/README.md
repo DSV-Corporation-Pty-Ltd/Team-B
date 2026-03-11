@@ -1,0 +1,12 @@
+# akshay Workspace
+
+This folder belongs to akshay.
+
+Allowed:
+- Add scripts
+- Store development work
+- Upload automation files
+
+Not allowed:
+- Editing other developer folders
+- Editing project folders without PR

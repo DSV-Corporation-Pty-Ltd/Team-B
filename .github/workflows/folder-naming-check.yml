@@ -1,0 +1,33 @@
+name: Folder Naming Convention Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-folders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check folder naming rules
+        run: |
+          echo "Checking folder names..."
+
+          INVALID=$(find . -type d | grep -E "[A-Z]| ")
+
+          if [ ! -z "$INVALID" ]; then
+            echo "Invalid folder names detected:"
+            echo "$INVALID"
+            echo ""
+            echo "Folder names must:"
+            echo "- be lowercase"
+            echo "- not contain spaces"
+            echo "- use '-' instead of spaces"
+            exit 1
+          else
+            echo "Folder names follow the naming convention."
+          fi
