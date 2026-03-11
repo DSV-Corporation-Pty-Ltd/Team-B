@@ -1,0 +1,1808 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team-B · Git Developer Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0d11;
+    --bg2: #111318;
+    --bg3: #181b22;
+    --surface: #1e2230;
+    --surface2: #252a38;
+    --border: #2d3348;
+    --accent: #4f8ef7;
+    --accent2: #7c5cfc;
+    --accent3: #00d9a3;
+    --text: #e8ecf5;
+    --text2: #8b93aa;
+    --text3: #5a6178;
+    --code-bg: #13151d;
+    --code-border: #1e2540;
+    --tag: #1a2540;
+    --tag-text: #4f8ef7;
+    --warn: #f7c94f;
+    --danger: #f75f6e;
+    --success: #00d9a3;
+    --sidebar-w: 280px;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'JetBrains Mono', monospace;
+    --font-serif: 'Instrument Serif', serif;
+    --radius: 10px;
+    --shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+
+  [data-theme="light"] {
+    --bg: #f4f6fb;
+    --bg2: #eef0f7;
+    --bg3: #e8ebf5;
+    --surface: #ffffff;
+    --surface2: #f0f2fa;
+    --border: #d0d5e8;
+    --text: #1a1f30;
+    --text2: #4a5168;
+    --text3: #8b93aa;
+    --code-bg: #f0f2fa;
+    --code-border: #d0d5e8;
+    --tag: #e0e8ff;
+    --tag-text: #2255c4;
+    --shadow: 0 4px 32px rgba(79,142,247,0.08);
+  }
+
+  [data-reading="true"] {
+    --font-body: 'Instrument Serif', serif;
+    --font-head: 'Instrument Serif', serif;
+  }
+
+  [data-reading="true"] .content-body {
+    font-size: 1.08rem;
+    line-height: 2;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+  }
+
+  /* ── SEARCH OVERLAY ── */
+  #search-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 999;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 80px;
+  }
+  #search-overlay.open { display: flex; }
+  .search-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 620px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .search-input-wrap svg { color: var(--text2); flex-shrink: 0; }
+  #search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--text);
+  }
+  #search-input::placeholder { color: var(--text3); }
+  #search-results {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .search-result {
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .search-result:hover { background: var(--surface2); }
+  .search-result-title { font-weight: 600; font-size: 0.9rem; color: var(--text); }
+  .search-result-section { font-size: 0.78rem; color: var(--text3); }
+  .search-result-preview { font-size: 0.82rem; color: var(--text2); }
+  .search-result-preview mark { background: rgba(79,142,247,0.25); color: var(--accent); border-radius: 3px; padding: 0 2px; }
+  .search-empty { padding: 32px; text-align: center; color: var(--text3); font-size: 0.9rem; }
+  kbd {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 5px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+    color: var(--text2);
+    font-family: var(--font-body);
+  }
+
+  /* ── TOPBAR ── */
+  #topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    z-index: 200;
+    backdrop-filter: blur(12px);
+  }
+  .logo {
+    font-family: var(--font-head);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .logo-badge {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    padding: 2px 9px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .topbar-spacer { flex: 1; }
+  .search-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+    color: var(--text2);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    transition: border-color 0.2s, background 0.2s;
+    min-width: 200px;
+  }
+  .search-trigger:hover { border-color: var(--accent); background: var(--surface2); }
+  .topbar-controls { display: flex; gap: 8px; align-items: center; }
+  .ctrl-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--surface2); }
+  .ctrl-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #hamburger { display: none; }
+
+  /* ── LAYOUT ── */
+  .layout { display: flex; padding-top: 60px; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 60px;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+    padding: 20px 0 40px;
+    transition: transform 0.3s;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .nav-section-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 16px 20px 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 0.83rem;
+    transition: all 0.15s;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface); }
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(79,142,247,0.07);
+    border-left-color: var(--accent);
+  }
+  .nav-item svg { flex-shrink: 0; opacity: 0.7; }
+  .nav-item.active svg { opacity: 1; }
+
+  /* ── MAIN ── */
+  #main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-width: 0;
+    padding: 40px 48px 80px;
+    max-width: 960px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, var(--surface) 0%, var(--bg3) 100%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px;
+    margin-bottom: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(79,142,247,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 40%;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(124,92,252,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .hero h1 {
+    font-family: var(--font-head);
+    font-size: 2.6rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, var(--text) 40%, var(--text2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    font-size: 0.95rem;
+    color: var(--text2);
+    line-height: 1.7;
+    max-width: 560px;
+    margin-bottom: 24px;
+  }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hero-tag {
+    background: var(--tag);
+    color: var(--tag-text);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 1px solid rgba(79,142,247,0.2);
+  }
+
+  /* ── SECTION ── */
+  .doc-section {
+    margin-bottom: 56px;
+    scroll-margin-top: 80px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(79,142,247,0.15), rgba(124,92,252,0.1));
+    border: 1px solid rgba(79,142,247,0.2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 18px;
+  }
+  .section-title-wrap {}
+  .section-num {
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  /* ── CONTENT BODY ── */
+  .content-body { font-size: 0.9rem; line-height: 1.8; color: var(--text2); }
+  .content-body p { margin-bottom: 14px; }
+  .content-body h3 {
+    font-family: var(--font-head);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+  .content-body h4 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 18px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .content-body ul, .content-body ol {
+    padding-left: 20px;
+    margin-bottom: 14px;
+  }
+  .content-body li { margin-bottom: 6px; }
+  .content-body strong { color: var(--text); font-weight: 600; }
+
+  /* ── CODE BLOCKS ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: 10px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--code-border);
+    background: rgba(255,255,255,0.02);
+  }
+  .code-lang {
+    font-size: 0.72rem;
+    color: var(--text3);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text3);
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    padding: 3px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--success); border-color: var(--success); }
+  .code-block pre {
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.84rem;
+    line-height: 1.7;
+    color: var(--text);
+    scrollbar-width: thin;
+  }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--code-border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--accent3);
+  }
+  pre code { background: none; border: none; padding: 0; font-size: inherit; color: inherit; }
+
+  /* Syntax colors */
+  .c-comment { color: #5a6480; font-style: italic; }
+  .c-cmd { color: #4f8ef7; }
+  .c-str { color: #00d9a3; }
+  .c-kw { color: #7c5cfc; }
+  .c-flag { color: #f7c94f; }
+  .c-path { color: #f78c4f; }
+  .c-var { color: #f75f6e; }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+    font-size: 0.87rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout-icon { flex-shrink: 0; margin-top: 1px; font-size: 16px; }
+  .callout.info {
+    background: rgba(79,142,247,0.07);
+    border-color: rgba(79,142,247,0.25);
+    color: var(--text2);
+  }
+  .callout.warn {
+    background: rgba(247,201,79,0.07);
+    border-color: rgba(247,201,79,0.25);
+    color: var(--text2);
+  }
+  .callout.warn .callout-icon { color: var(--warn); }
+  .callout.success {
+    background: rgba(0,217,163,0.07);
+    border-color: rgba(0,217,163,0.25);
+    color: var(--text2);
+  }
+  .callout.success .callout-icon { color: var(--success); }
+  .callout.danger {
+    background: rgba(247,95,110,0.07);
+    border-color: rgba(247,95,110,0.25);
+    color: var(--text2);
+  }
+  .callout.danger .callout-icon { color: var(--danger); }
+
+  /* ── TABLES ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th {
+    background: var(--surface);
+    padding: 11px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  /* ── STEPS ── */
+  .steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .step {
+    display: flex;
+    gap: 16px;
+    position: relative;
+  }
+  .step-left { display: flex; flex-direction: column; align-items: center; }
+  .step-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+  .step-line {
+    width: 1px;
+    flex: 1;
+    background: var(--border);
+    margin: 4px 0;
+    min-height: 20px;
+  }
+  .step:last-child .step-line { display: none; }
+  .step-content { padding-bottom: 24px; padding-top: 4px; flex: 1; }
+  .step-content h4 { font-family: var(--font-head); font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+
+  /* ── CARDS ── */
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-title { font-weight: 700; font-size: 0.88rem; color: var(--text); margin-bottom: 6px; }
+  .card-body { font-size: 0.82rem; color: var(--text2); line-height: 1.6; }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  .badge-blue { background: rgba(79,142,247,0.15); color: var(--accent); }
+  .badge-green { background: rgba(0,217,163,0.15); color: var(--success); }
+  .badge-warn { background: rgba(247,201,79,0.15); color: var(--warn); }
+  .badge-red { background: rgba(247,95,110,0.15); color: var(--danger); }
+
+  /* ── EXTERNAL LINKS ── */
+  .ext-links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 16px; }
+  .ext-link-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ext-link-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,142,247,0.12); }
+  .ext-link-icon { font-size: 20px; flex-shrink: 0; }
+  .ext-link-info {}
+  .ext-link-name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+  .ext-link-desc { font-size: 0.75rem; color: var(--text3); margin-top: 2px; }
+  .ext-link-arrow { margin-left: auto; color: var(--text3); font-size: 12px; }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-left: var(--sidebar-w);
+    border-top: 1px solid var(--border);
+    padding: 40px 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .footer-inner { text-align: center; }
+  .footer-logo {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .footer-sub { font-size: 0.8rem; color: var(--text3); margin-bottom: 16px; }
+  .footer-dev {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    color: var(--text2);
+  }
+  .footer-dev span { color: var(--accent); font-weight: 700; }
+  .footer-copy { font-size: 0.75rem; color: var(--text3); margin-top: 10px; }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed;
+    top: 60px; left: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    z-index: 300;
+    transition: width 0.1s linear;
+    width: 0%;
+  }
+
+  /* ── BACK TO TOP ── */
+  #back-top {
+    position: fixed;
+    bottom: 32px; right: 32px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    box-shadow: 0 4px 16px rgba(79,142,247,0.4);
+    transition: all 0.3s;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  #back-top.show { opacity: 1; transform: translateY(0); }
+  #back-top:hover { transform: translateY(-2px); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    #sidebar {
+      transform: translateX(-100%);
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+    #main, footer {
+      margin-left: 0;
+      padding: 24px 20px 60px;
+    }
+    footer { margin-left: 0; padding: 32px 20px; }
+    .hero { padding: 28px 24px; }
+    .hero h1 { font-size: 1.9rem; }
+    #hamburger { display: flex; }
+    .search-trigger { min-width: 120px; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<!-- Search Overlay -->
+<div id="search-overlay" onclick="closeSearch(event)">
+  <div class="search-modal" onclick="event.stopPropagation()">
+    <div class="search-input-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="search-input" placeholder="Search documentation…" autocomplete="off" oninput="doSearch(this.value)">
+      <kbd>ESC</kbd>
+    </div>
+    <div id="search-results"><div class="search-empty">Type to search across all sections…</div></div>
+  </div>
+</div>
+
+<!-- Top Bar -->
+<nav id="topbar">
+  <button class="ctrl-btn" id="hamburger" onclick="toggleSidebar()" title="Menu">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+  <a href="#top" class="logo">
+    <span class="logo-badge">B</span>
+    Team-B · Git Guide
+  </a>
+  <div class="topbar-spacer"></div>
+  <button class="search-trigger" onclick="openSearch()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    Search docs…
+    <kbd style="margin-left:auto">⌘K</kbd>
+  </button>
+  <div class="topbar-controls">
+    <button class="ctrl-btn" id="reading-btn" onclick="toggleReading()" title="Reading mode">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+    </button>
+    <button class="ctrl-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="theme-icon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="layout">
+
+<!-- Sidebar -->
+<nav id="sidebar">
+  <div class="nav-section-label">Getting Started</div>
+  <a class="nav-item active" href="#installing-git" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    Installing Git
+  </a>
+  <a class="nav-item" href="#git-config" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 1 0 .06 14.21"/></svg>
+    Initial Configuration
+  </a>
+  <a class="nav-item" href="#ssh-setup" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    SSH Key Setup
+  </a>
+  <a class="nav-item" href="#add-ssh-github" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77"/></svg>
+    Add SSH to GitHub
+  </a>
+
+  <div class="nav-section-label">Advanced Setup</div>
+  <a class="nav-item" href="#multiple-accounts" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Multiple Accounts
+  </a>
+  <a class="nav-item" href="#ssh-config" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    SSH Config File
+  </a>
+  <a class="nav-item" href="#cloning" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    Cloning the Repo
+  </a>
+
+  <div class="nav-section-label">Daily Workflow</div>
+  <a class="nav-item" href="#branch-workflow" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+    Branch Workflow
+  </a>
+  <a class="nav-item" href="#commits" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><line x1="1.05" y1="12" x2="7" y2="12"/><line x1="17" y1="12" x2="22.95" y2="12"/></svg>
+    Commit Standards
+  </a>
+  <a class="nav-item" href="#pull-requests" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+    Pull Requests
+  </a>
+  <a class="nav-item" href="#sync" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.3"/></svg>
+    Sync & Update
+  </a>
+
+  <div class="nav-section-label">Help</div>
+  <a class="nav-item" href="#troubleshooting" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Troubleshooting
+  </a>
+  <a class="nav-item" href="#official-docs" onclick="navClick(this)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    Official Docs
+  </a>
+</nav>
+
+<!-- Main Content -->
+<main id="main">
+
+  <!-- Hero -->
+  <div class="hero" id="top">
+    <div class="hero-label">📦 Team-B · Developer Documentation</div>
+    <h1>Git & GitHub<br>Setup Guide</h1>
+    <p>Everything you need to configure Git, set up SSH, follow our branch strategy, and contribute to Team-B projects — from day one.</p>
+    <div class="hero-tags">
+      <span class="hero-tag">Git 2.x+</span>
+      <span class="hero-tag">GitHub SSH</span>
+      <span class="hero-tag">Branch Strategy</span>
+      <span class="hero-tag">10 Developers</span>
+      <span class="hero-tag">9 Client Projects</span>
+      <span class="hero-tag">Protected Main</span>
+    </div>
+  </div>
+
+  <!-- ── 1. INSTALLING GIT ── -->
+  <section class="doc-section" id="installing-git">
+    <div class="section-header">
+      <div class="section-icon">💻</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 01</div>
+        <h2 class="section-title">Installing Git</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Git is the version control system powering our entire workflow. Install it on your machine before anything else.</p>
+
+      <h3>🪟 Windows</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">PowerShell / Winget</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Option 1 — Using winget (recommended)</span>
+<span class="c-cmd">winget install</span> <span class="c-str">Git.Git</span>
+
+<span class="c-comment"># Option 2 — Download installer from</span>
+<span class="c-comment"># https://git-scm.com/download/win</span>
+<span class="c-comment"># Run installer → keep all defaults → select "Git Bash Here"</span></code></pre>
+      </div>
+
+      <h3>🍎 macOS</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Option 1 — Homebrew (recommended)</span>
+<span class="c-cmd">brew install</span> <span class="c-str">git</span>
+
+<span class="c-comment"># Option 2 — Xcode Command Line Tools</span>
+<span class="c-cmd">xcode-select --install</span></code></pre>
+      </div>
+
+      <h3>🐧 Linux (Ubuntu / Debian)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bash</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-cmd">sudo apt update</span>
+<span class="c-cmd">sudo apt install</span> <span class="c-str">git</span> <span class="c-flag">-y</span></code></pre>
+      </div>
+
+      <h3>✅ Verify Installation</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Any Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-cmd">git --version</span>
+<span class="c-comment"># Expected output: git version 2.xx.x</span></code></pre>
+      </div>
+      <div class="callout success"><span class="callout-icon">✅</span><span>You need Git <strong>2.28 or higher</strong> for all Team-B workflows to function correctly. Update if your version is older.</span></div>
+    </div>
+  </section>
+
+  <!-- ── 2. GIT CONFIG ── -->
+  <section class="doc-section" id="git-config">
+    <div class="section-header">
+      <div class="section-icon">⚙️</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 02</div>
+        <h2 class="section-title">Initial Git Configuration</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Before your first commit, configure Git with your identity. This information is permanently embedded in every commit you make.</p>
+
+      <div class="callout warn"><span class="callout-icon">⚠️</span><span>Use the <strong>same email</strong> as your GitHub account. Mismatched emails break contribution graphs and CODEOWNERS attribution.</span></div>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Set your display name</span>
+<span class="c-cmd">git config --global</span> user.name <span class="c-str">"Your Full Name"</span>
+
+<span class="c-comment"># Set your GitHub-registered email</span>
+<span class="c-cmd">git config --global</span> user.email <span class="c-str">"you@example.com"</span>
+
+<span class="c-comment"># Set default branch name to "main"</span>
+<span class="c-cmd">git config --global</span> init.defaultBranch <span class="c-str">main</span>
+
+<span class="c-comment"># Set VS Code as default editor (recommended)</span>
+<span class="c-cmd">git config --global</span> core.editor <span class="c-str">"code --wait"</span>
+
+<span class="c-comment"># Enable coloured output in terminal</span>
+<span class="c-cmd">git config --global</span> color.ui <span class="c-str">auto</span>
+
+<span class="c-comment"># Set merge strategy</span>
+<span class="c-cmd">git config --global</span> pull.rebase <span class="c-str">false</span>
+
+<span class="c-comment"># Verify all settings</span>
+<span class="c-cmd">git config --global --list</span></code></pre>
+      </div>
+
+      <h3>Developer-Specific Examples</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Developer</th><th>Name Config</th><th>Email Format</th></tr></thead>
+          <tbody>
+            <tr><td>Siddharth</td><td><code>git config --global user.name "Siddharth"</code></td><td>siddharth@company.com</td></tr>
+            <tr><td>Pranay</td><td><code>git config --global user.name "Pranay"</code></td><td>pranay@company.com</td></tr>
+            <tr><td>Tanuja</td><td><code>git config --global user.name "Tanuja"</code></td><td>tanuja@company.com</td></tr>
+            <tr><td>Rohit</td><td><code>git config --global user.name "Rohit"</code></td><td>rohit@company.com</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3. SSH KEY SETUP ── -->
+  <section class="doc-section" id="ssh-setup">
+    <div class="section-header">
+      <div class="section-icon">🔑</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 03</div>
+        <h2 class="section-title">SSH Key Setup</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>SSH keys allow you to authenticate with GitHub securely — no passwords required. Each developer must generate their own SSH key pair.</p>
+
+      <div class="callout info"><span class="callout-icon">ℹ️</span><span>An SSH key pair consists of a <strong>private key</strong> (stays on your machine, never share) and a <strong>public key</strong> (uploaded to GitHub).</span></div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-left"><div class="step-dot">1</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Generate the SSH Key</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-comment"># Replace with your actual GitHub email</span>
+<span class="c-cmd">ssh-keygen</span> <span class="c-flag">-t</span> ed25519 <span class="c-flag">-C</span> <span class="c-str">"you@example.com"</span>
+
+<span class="c-comment"># When prompted for file location:</span>
+<span class="c-comment"># Press Enter for default (~/.ssh/id_ed25519)</span>
+<span class="c-comment"># Or type a custom name for multiple accounts:</span>
+<span class="c-comment"># e.g., /Users/you/.ssh/id_teamb</span>
+
+<span class="c-comment"># Set a passphrase (recommended for security)</span></code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">2</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Start the SSH Agent</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-comment"># Start the agent in background</span>
+<span class="c-cmd">eval</span> <span class="c-str">"$(ssh-agent -s)"</span>
+
+<span class="c-comment"># Add your private key to agent</span>
+<span class="c-cmd">ssh-add</span> ~/.ssh/id_ed25519
+
+<span class="c-comment"># Windows (Git Bash): same commands above</span>
+<span class="c-comment"># Windows (PowerShell):</span>
+<span class="c-cmd">Start-Service</span> ssh-agent
+<span class="c-cmd">ssh-add</span> ~\.ssh\id_ed25519</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">3</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Copy Your Public Key</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-comment"># macOS</span>
+<span class="c-cmd">cat</span> ~/.ssh/id_ed25519.pub | <span class="c-cmd">pbcopy</span>
+
+<span class="c-comment"># Linux</span>
+<span class="c-cmd">cat</span> ~/.ssh/id_ed25519.pub | <span class="c-cmd">xclip -selection clipboard</span>
+
+<span class="c-comment"># Windows (PowerShell)</span>
+<span class="c-cmd">Get-Content</span> ~\.ssh\id_ed25519.pub | <span class="c-cmd">Set-Clipboard</span>
+
+<span class="c-comment"># Or just print and manually copy</span>
+<span class="c-cmd">cat</span> ~/.ssh/id_ed25519.pub</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 4. ADD SSH TO GITHUB ── -->
+  <section class="doc-section" id="add-ssh-github">
+    <div class="section-header">
+      <div class="section-icon">🐙</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 04</div>
+        <h2 class="section-title">Adding SSH Key to GitHub</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Once you have your public key copied, add it to your GitHub account so GitHub can authenticate you.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-left"><div class="step-dot">1</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Open GitHub SSH Settings</h4>
+            <p>Go to <strong>GitHub.com → Profile photo (top-right) → Settings → SSH and GPG keys → New SSH key</strong></p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">2</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Fill in the Details</h4>
+            <p>• <strong>Title</strong>: Use a descriptive name like <code>MacBook-Work-2025</code> or <code>Ubuntu-Dev</code><br>
+            • <strong>Key type</strong>: Authentication Key<br>
+            • <strong>Key</strong>: Paste your public key</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">3</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Test the Connection</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-cmd">ssh</span> <span class="c-flag">-T</span> git@github.com
+
+<span class="c-comment"># Success output:</span>
+<span class="c-str">Hi username! You've successfully authenticated...</span>
+
+<span class="c-comment"># If you see "permission denied", check key was added correctly</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. MULTIPLE ACCOUNTS ── -->
+  <section class="doc-section" id="multiple-accounts">
+    <div class="section-header">
+      <div class="section-icon">👥</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 05</div>
+        <h2 class="section-title">Using Multiple GitHub Accounts</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>If you have a personal GitHub account <em>and</em> your Team-B work account, you need separate SSH keys and an SSH config to manage both seamlessly.</p>
+
+      <div class="callout warn"><span class="callout-icon">⚠️</span><span>Never reuse the same SSH key across multiple GitHub accounts. GitHub requires unique keys per account.</span></div>
+
+      <h3>Generate a Second Key for Work</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Personal key (already exists)</span>
+<span class="c-comment"># ~/.ssh/id_ed25519</span>
+
+<span class="c-comment"># Generate a separate key for Team-B work account</span>
+<span class="c-cmd">ssh-keygen</span> <span class="c-flag">-t</span> ed25519 <span class="c-flag">-C</span> <span class="c-str">"you@teamb-company.com"</span> <span class="c-flag">-f</span> ~/.ssh/id_teamb
+
+<span class="c-comment"># Add work key to SSH agent</span>
+<span class="c-cmd">ssh-add</span> ~/.ssh/id_teamb
+
+<span class="c-comment"># Copy the work public key</span>
+<span class="c-cmd">cat</span> ~/.ssh/id_teamb.pub</code></pre>
+      </div>
+      <p>Then add <code>id_teamb.pub</code> to your Team-B GitHub account following the same steps in Section 04.</p>
+    </div>
+  </section>
+
+  <!-- ── 6. SSH CONFIG ── -->
+  <section class="doc-section" id="ssh-config">
+    <div class="section-header">
+      <div class="section-icon">📄</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 06</div>
+        <h2 class="section-title">SSH Config File for Multiple Accounts</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>The SSH config file at <code>~/.ssh/config</code> tells your system which key to use for which host. This is what makes multiple accounts work transparently.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">~/.ssh/config</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># ── Personal GitHub Account ──</span>
+<span class="c-kw">Host</span> github.com-personal
+  <span class="c-kw">HostName</span>     github.com
+  <span class="c-kw">User</span>         git
+  <span class="c-kw">IdentityFile</span> ~/.ssh/id_ed25519
+
+<span class="c-comment"># ── Team-B Work Account ──</span>
+<span class="c-kw">Host</span> github.com-teamb
+  <span class="c-kw">HostName</span>     github.com
+  <span class="c-kw">User</span>         git
+  <span class="c-kw">IdentityFile</span> ~/.ssh/id_teamb</code></pre>
+      </div>
+
+      <h3>Using the Config Aliases</h3>
+      <p>When cloning, replace <code>github.com</code> with your configured host alias:</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Clone personal project</span>
+<span class="c-cmd">git clone</span> git@<span class="c-str">github.com-personal</span>:your-username/personal-repo.git
+
+<span class="c-comment"># Clone Team-B project</span>
+<span class="c-cmd">git clone</span> git@<span class="c-str">github.com-teamb</span>:Team-B/repository.git
+
+<span class="c-comment"># Test each alias independently</span>
+<span class="c-cmd">ssh</span> <span class="c-flag">-T</span> git@github.com-personal
+<span class="c-cmd">ssh</span> <span class="c-flag">-T</span> git@github.com-teamb</code></pre>
+      </div>
+
+      <div class="callout info"><span class="callout-icon">ℹ️</span><span>You can also set per-repo Git configs with <code>git config user.email "work@email.com"</code> (without <code>--global</code>) inside the repo folder to override global settings.</span></div>
+    </div>
+  </section>
+
+  <!-- ── 7. CLONING ── -->
+  <section class="doc-section" id="cloning">
+    <div class="section-header">
+      <div class="section-icon">📥</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 07</div>
+        <h2 class="section-title">Cloning the Repository</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Clone the Team-B repository to your local machine. Each developer has a dedicated folder inside <code>developers/</code>. <strong>Never work outside your own folder</strong> — CODEOWNERS rules will reject it.</p>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Clone via SSH (recommended)</span>
+<span class="c-cmd">git clone</span> git@github.com-teamb:Team-B/repository.git
+
+<span class="c-comment"># Navigate into the repo</span>
+<span class="c-cmd">cd</span> repository
+
+<span class="c-comment"># Confirm remotes are set correctly</span>
+<span class="c-cmd">git remote</span> <span class="c-flag">-v</span>
+
+<span class="c-comment"># Output should show:</span>
+<span class="c-comment"># origin  git@github.com-teamb:Team-B/repository.git (fetch)</span>
+<span class="c-comment"># origin  git@github.com-teamb:Team-B/repository.git (push)</span></code></pre>
+      </div>
+
+      <h3>Repository Structure</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Tree</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-path">Team-B/</span>
+├── <span class="c-path">developers/</span>
+│   ├── <span class="c-str">siddharth/</span>    <span class="c-comment">← Only Siddharth commits here</span>
+│   ├── <span class="c-str">pranay/</span>
+│   ├── <span class="c-str">tanuja/</span>
+│   ├── <span class="c-str">rohit/</span>
+│   ├── <span class="c-str">ajay/</span>
+│   ├── <span class="c-str">maninder/</span>
+│   ├── <span class="c-str">tanuj/</span>
+│   ├── <span class="c-str">akshay/</span>
+│   ├── <span class="c-str">neeru/</span>
+│   └── <span class="c-str">shubham/</span>
+├── <span class="c-path">projects/</span>
+│   ├── <span class="c-str">jio-black-rock/</span>
+│   ├── <span class="c-str">bajaj-electricals/</span>
+│   ├── <span class="c-str">mrf-tyres/</span>
+│   └── <span class="c-str">...</span>       <span class="c-comment">← Governed by CODEOWNERS</span>
+└── <span class="c-path">docs/</span></code></pre>
+      </div>
+
+      <div class="callout danger"><span class="callout-icon">🚫</span><span>The <code>projects/</code> folder is <strong>protected</strong>. You may read project files but must never commit directly to a project folder unless you are its designated CODEOWNER. All changes go through PRs.</span></div>
+    </div>
+  </section>
+
+  <!-- ── 8. BRANCH WORKFLOW ── -->
+  <section class="doc-section" id="branch-workflow">
+    <div class="section-header">
+      <div class="section-icon">🌿</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 08</div>
+        <h2 class="section-title">Branch Workflow</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Team-B follows a structured branching strategy. <strong>Never push directly to <code>main</code></strong>. All changes go through feature branches and pull requests.</p>
+
+      <h3>Branch Naming Convention</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>Format</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-blue">feature</span></td><td><code>feature/dev-name/description</code></td><td><code>feature/rohit/login-page</code></td></tr>
+            <tr><td><span class="badge badge-warn">fix</span></td><td><code>fix/dev-name/issue-description</code></td><td><code>fix/tanuja/navbar-overflow</code></td></tr>
+            <tr><td><span class="badge badge-red">hotfix</span></td><td><code>hotfix/dev-name/critical-issue</code></td><td><code>hotfix/ajay/payment-crash</code></td></tr>
+            <tr><td><span class="badge badge-green">docs</span></td><td><code>docs/dev-name/what-changed</code></td><td><code>docs/maninder/api-reference</code></td></tr>
+            <tr><td><span class="badge badge-green">chore</span></td><td><code>chore/dev-name/task</code></td><td><code>chore/akshay/update-deps</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Daily Development Flow</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal — Step by Step</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Step 1: Always start from latest main</span>
+<span class="c-cmd">git checkout</span> main
+<span class="c-cmd">git pull</span> origin main
+
+<span class="c-comment"># Step 2: Create your feature branch</span>
+<span class="c-cmd">git checkout</span> <span class="c-flag">-b</span> feature/yourname/your-feature
+
+<span class="c-comment"># Step 3: Work on your files, then stage</span>
+<span class="c-cmd">git add</span> developers/yourname/  <span class="c-comment"># Only add YOUR folder</span>
+
+<span class="c-comment"># Step 4: Commit with a good message (see Section 09)</span>
+<span class="c-cmd">git commit</span> <span class="c-flag">-m</span> <span class="c-str">"feat: add user authentication module"</span>
+
+<span class="c-comment"># Step 5: Push to remote</span>
+<span class="c-cmd">git push</span> origin feature/yourname/your-feature
+
+<span class="c-comment"># Step 6: Open a PR on GitHub (see Section 10)</span></code></pre>
+      </div>
+
+      <h3>Branch Protection Summary</h3>
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">🔒 main branch</div>
+          <div class="card-body">Direct pushes blocked. All merges require a PR with at least 1 approval. CI checks must pass.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">🛡️ projects/ folder</div>
+          <div class="card-body">Protected via CODEOWNERS. Changes require review from the assigned project owner.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">👤 developers/ folder</div>
+          <div class="card-body">Each developer owns their subfolder. GitHub Actions enforce you only touch your own directory.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">✅ CI Validation</div>
+          <div class="card-body">GitHub Actions run on every PR to validate folder structure, naming conventions, and permissions.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 9. COMMITS ── -->
+  <section class="doc-section" id="commits">
+    <div class="section-header">
+      <div class="section-icon">✍️</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 09</div>
+        <h2 class="section-title">Commit Message Standards</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Team-B follows the <strong>Conventional Commits</strong> specification. Good commit messages make code review faster, changelogs automatic, and history readable.</p>
+
+      <h3>Format</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Format</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-kw">type</span>(<span class="c-str">optional-scope</span>): <span class="c-var">short description</span>
+
+<span class="c-comment">[optional body — explain WHY, not what]</span>
+
+<span class="c-comment">[optional footer — issue references, breaking changes]</span></code></pre>
+      </div>
+
+      <h3>Commit Types</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Type</th><th>When to use</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td><code>feat</code></td><td>New feature or functionality</td><td><code>feat: add product search filter</code></td></tr>
+            <tr><td><code>fix</code></td><td>Bug fixes</td><td><code>fix: resolve null pointer on login</code></td></tr>
+            <tr><td><code>docs</code></td><td>Documentation changes only</td><td><code>docs: update README setup guide</code></td></tr>
+            <tr><td><code>style</code></td><td>Formatting, spacing (no logic change)</td><td><code>style: reformat button component</code></td></tr>
+            <tr><td><code>refactor</code></td><td>Code restructuring (no feature/fix)</td><td><code>refactor: simplify auth middleware</code></td></tr>
+            <tr><td><code>test</code></td><td>Adding or updating tests</td><td><code>test: add unit tests for cart</code></td></tr>
+            <tr><td><code>chore</code></td><td>Build process, dependency updates</td><td><code>chore: update npm packages</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Real Examples</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Good Commits ✅</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-str">feat(auth): implement JWT refresh token rotation</span>
+<span class="c-str">fix(bajaj-electricals): correct invoice total calculation</span>
+<span class="c-str">docs: add SSH multi-account setup guide</span>
+<span class="c-str">refactor(api): extract validation into separate middleware</span></code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Bad Commits ❌ — Avoid These</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-var">fixed stuff</span>
+<span class="c-var">WIP</span>
+<span class="c-var">changes</span>
+<span class="c-var">asdfghjkl</span>
+<span class="c-var">update</span></code></pre>
+      </div>
+
+      <div class="callout info"><span class="callout-icon">💡</span><span>Keep the first line under <strong>72 characters</strong>. Use imperative mood: "add feature" not "added feature". If you need more context, add it in the commit body after a blank line.</span></div>
+    </div>
+  </section>
+
+  <!-- ── 10. PULL REQUESTS ── -->
+  <section class="doc-section" id="pull-requests">
+    <div class="section-header">
+      <div class="section-icon">🔀</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 10</div>
+        <h2 class="section-title">Creating Pull Requests</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>All code changes to <code>main</code> go through Pull Requests. Our repo has a PR template — fill it out completely for faster reviews.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-left"><div class="step-dot">1</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Push Your Branch</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-cmd">git push</span> <span class="c-flag">-u</span> origin feature/yourname/your-feature
+<span class="c-comment"># The -u flag sets upstream tracking for future pushes</span></code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">2</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Open a PR on GitHub</h4>
+            <p>GitHub will show a banner after pushing. Click <strong>"Compare & pull request"</strong> or go to the <strong>Pull Requests</strong> tab and click <strong>New pull request</strong>.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">3</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Complete the PR Template</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">PR Template Checklist</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-comment">## Summary</span>
+What does this PR do? Why is it needed?
+
+<span class="c-comment">## Changes Made</span>
+- [ ] Feature / Bug fix / Docs / Refactor
+- [ ] Affected files listed
+
+<span class="c-comment">## Testing</span>
+- [ ] Manually tested locally
+- [ ] No console errors
+
+<span class="c-comment">## Checklist</span>
+- [ ] Branch named correctly (feature/name/description)
+- [ ] Only modified files within my developer folder
+- [ ] Commit messages follow Conventional Commits
+- [ ] PR title follows: feat: / fix: / docs: etc.</code></pre>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">4</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Assign Reviewers & Labels</h4>
+            <p>Assign at least <strong>1 reviewer</strong>. GitHub Actions will automatically request reviews from CODEOWNERS for protected paths. Add relevant labels like <code>feature</code>, <code>bugfix</code>, or the client project name.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-left"><div class="step-dot">5</div><div class="step-line"></div></div>
+          <div class="step-content">
+            <h4>Address Review Comments</h4>
+            <div class="code-block">
+              <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+              <pre><code><span class="c-comment"># Make requested changes, then:</span>
+<span class="c-cmd">git add</span> .
+<span class="c-cmd">git commit</span> <span class="c-flag">-m</span> <span class="c-str">"fix: address review feedback on validation"</span>
+<span class="c-cmd">git push</span>
+<span class="c-comment"># PR auto-updates — no need to close and reopen</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout success"><span class="callout-icon">✅</span><span>Once approved and all CI checks pass, the PR author or a maintainer will merge. <strong>Squash merge</strong> is the default strategy to keep main history clean.</span></div>
+    </div>
+  </section>
+
+  <!-- ── 11. SYNC ── -->
+  <section class="doc-section" id="sync">
+    <div class="section-header">
+      <div class="section-icon">🔄</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 11</div>
+        <h2 class="section-title">Updating Your Local Repository</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>The repository evolves daily. Always sync before starting new work to avoid conflicts.</p>
+
+      <h3>Daily Sync Routine</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># 1. Switch to main</span>
+<span class="c-cmd">git checkout</span> main
+
+<span class="c-comment"># 2. Fetch + merge latest changes</span>
+<span class="c-cmd">git pull</span> origin main
+
+<span class="c-comment"># 3. Checkout your feature branch</span>
+<span class="c-cmd">git checkout</span> feature/yourname/your-feature
+
+<span class="c-comment"># 4. Rebase on top of latest main (preferred)</span>
+<span class="c-cmd">git rebase</span> main
+
+<span class="c-comment"># — OR — merge if you prefer</span>
+<span class="c-cmd">git merge</span> main</code></pre>
+      </div>
+
+      <h3>Handling Merge Conflicts</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># 1. After conflict is reported, check which files</span>
+<span class="c-cmd">git status</span>
+
+<span class="c-comment"># 2. Open conflicted files — look for conflict markers:</span>
+<span class="c-var">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</span>
+your local code
+<span class="c-var">=======</span>
+incoming code
+<span class="c-var">&gt;&gt;&gt;&gt;&gt;&gt;&gt; main</span>
+
+<span class="c-comment"># 3. Edit file to keep the correct code, remove markers</span>
+
+<span class="c-comment"># 4. Stage the resolved file</span>
+<span class="c-cmd">git add</span> &lt;conflicted-file&gt;
+
+<span class="c-comment"># 5. Continue rebase</span>
+<span class="c-cmd">git rebase --continue</span>
+
+<span class="c-comment"># — OR — if merging:</span>
+<span class="c-cmd">git commit</span></code></pre>
+      </div>
+
+      <div class="callout info"><span class="callout-icon">💡</span><span>VS Code has a built-in merge conflict editor. When conflicts arise, open VS Code and use the "Accept Current / Incoming / Both" buttons for a visual resolution experience.</span></div>
+    </div>
+  </section>
+
+  <!-- ── 12. TROUBLESHOOTING ── -->
+  <section class="doc-section" id="troubleshooting">
+    <div class="section-header">
+      <div class="section-icon">🔧</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Section 12</div>
+        <h2 class="section-title">Troubleshooting Common Issues</h2>
+      </div>
+    </div>
+    <div class="content-body">
+
+      <h3>❌ SSH Permission Denied</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Fix</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Check if SSH agent has keys loaded</span>
+<span class="c-cmd">ssh-add</span> <span class="c-flag">-l</span>
+
+<span class="c-comment"># If empty, add your key again</span>
+<span class="c-cmd">ssh-add</span> ~/.ssh/id_teamb
+
+<span class="c-comment"># Test connection verbosely</span>
+<span class="c-cmd">ssh</span> <span class="c-flag">-vT</span> git@github.com-teamb
+
+<span class="c-comment"># Verify correct key is being used</span>
+<span class="c-cmd">ssh</span> <span class="c-flag">-i</span> ~/.ssh/id_teamb <span class="c-flag">-T</span> git@github.com</code></pre>
+      </div>
+
+      <h3>❌ Wrong Author on Commits</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Fix</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Fix last commit author</span>
+<span class="c-cmd">git commit --amend --reset-author</span>
+
+<span class="c-comment"># Fix last N commits (example: last 3)</span>
+<span class="c-cmd">git rebase</span> <span class="c-flag">-i</span> HEAD~3
+<span class="c-comment"># Change "pick" to "edit" for commits to fix</span>
+<span class="c-comment"># Then: git commit --amend --reset-author</span>
+<span class="c-comment"># Then: git rebase --continue</span></code></pre>
+      </div>
+
+      <h3>❌ Accidentally Committed to main</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Fix</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Move commit to a new branch (save your work)</span>
+<span class="c-cmd">git branch</span> feature/yourname/save-my-work
+
+<span class="c-comment"># Reset main to before the accidental commit</span>
+<span class="c-cmd">git reset</span> <span class="c-flag">--hard</span> HEAD~1
+
+<span class="c-comment"># Switch to the new branch and continue</span>
+<span class="c-cmd">git checkout</span> feature/yourname/save-my-work</code></pre>
+      </div>
+
+      <h3>❌ Undo Last Commit (keep changes)</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Fix</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Undo commit, keep files staged</span>
+<span class="c-cmd">git reset</span> <span class="c-flag">--soft</span> HEAD~1
+
+<span class="c-comment"># Undo commit, keep files unstaged</span>
+<span class="c-cmd">git reset</span> HEAD~1
+
+<span class="c-comment"># DISCARD changes completely (destructive!)</span>
+<span class="c-cmd">git reset</span> <span class="c-flag">--hard</span> HEAD~1</code></pre>
+      </div>
+
+      <h3>❌ PR Blocked by GitHub Actions</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Error</th><th>Cause</th><th>Fix</th></tr></thead>
+          <tbody>
+            <tr><td>Folder validation failed</td><td>Modified files outside your developer folder</td><td>Check <code>git diff --name-only main</code> and revert unauthorized files</td></tr>
+            <tr><td>Permission denied on projects/</td><td>Committed to a project folder you don't own</td><td>Revert those specific files, open a PR to the correct owner</td></tr>
+            <tr><td>Branch name invalid</td><td>Branch doesn't match naming pattern</td><td>Rename: <code>git branch -m old-name feature/yourname/desc</code></td></tr>
+            <tr><td>CODEOWNERS review required</td><td>Changed a protected path</td><td>Wait for or request review from the code owner</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>❌ Stash Uncommitted Work</h3>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">Terminal</span><button class="copy-btn" onclick="copyCode(this)">⧉ Copy</button></div>
+        <pre><code><span class="c-comment"># Save current changes without committing</span>
+<span class="c-cmd">git stash</span> push <span class="c-flag">-m</span> <span class="c-str">"WIP: half-done feature"</span>
+
+<span class="c-comment"># List all stashes</span>
+<span class="c-cmd">git stash list</span>
+
+<span class="c-comment"># Restore latest stash</span>
+<span class="c-cmd">git stash pop</span>
+
+<span class="c-comment"># Restore specific stash</span>
+<span class="c-cmd">git stash apply</span> stash@{2}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── OFFICIAL DOCS ── -->
+  <section class="doc-section" id="official-docs">
+    <div class="section-header">
+      <div class="section-icon">📚</div>
+      <div class="section-title-wrap">
+        <div class="section-num">Reference</div>
+        <h2 class="section-title">Official Documentation</h2>
+      </div>
+    </div>
+    <div class="content-body">
+      <p>Bookmark these official resources for deep dives, edge cases, and the latest updates.</p>
+      <div class="ext-links-grid">
+        <a href="https://git-scm.com/doc" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">📘</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">Git Official Docs</div>
+            <div class="ext-link-desc">Full reference & Pro Git book</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://docs.github.com/en" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">🐙</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">GitHub Docs</div>
+            <div class="ext-link-desc">Actions, SSH, PRs & more</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">🔑</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">GitHub SSH Guide</div>
+            <div class="ext-link-desc">Official SSH key setup</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://www.conventionalcommits.org" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">✍️</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">Conventional Commits</div>
+            <div class="ext-link-desc">Commit message spec</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">🔀</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">GitHub Pull Requests</div>
+            <div class="ext-link-desc">PR workflows & best practices</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">🛡️</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">CODEOWNERS Docs</div>
+            <div class="ext-link-desc">How code ownership works</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://docs.github.com/en/actions" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">⚡</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">GitHub Actions</div>
+            <div class="ext-link-desc">CI/CD workflow automation</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+        <a href="https://training.github.com/downloads/github-git-cheat-sheet.pdf" target="_blank" rel="noopener" class="ext-link-card">
+          <div class="ext-link-icon">📋</div>
+          <div class="ext-link-info">
+            <div class="ext-link-name">Git Cheat Sheet</div>
+            <div class="ext-link-desc">GitHub's official PDF reference</div>
+          </div>
+          <div class="ext-link-arrow">↗</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">Team-B · Git Developer Guide</div>
+    <div class="footer-sub">Internal documentation for Team-B developers · All 10 developers · 9 client projects</div>
+    <div class="footer-dev">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Developed by <span>@rohit</span>
+    </div>
+    <div class="footer-copy">© 2025 Team-B · Built for developers, by developers · docs/git-setup.md · docs/git-workflow.md · docs/github-guide.md</div>
+  </div>
+</footer>
+
+<button id="back-top" onclick="scrollToTop()" title="Back to top">↑</button>
+
+<script>
+// ── SEARCH DATA ──
+const searchData = [
+  { id: 'installing-git', section: 'Getting Started', title: 'Installing Git', keywords: 'install git windows mac linux brew apt winget verify version homebrew xcode' },
+  { id: 'git-config', section: 'Getting Started', title: 'Initial Configuration', keywords: 'config name email user global init defaultbranch editor color siddharth pranay tanuja rohit ajay maninder' },
+  { id: 'ssh-setup', section: 'Getting Started', title: 'SSH Key Setup', keywords: 'ssh keygen ed25519 private public key passphrase agent generate copy' },
+  { id: 'add-ssh-github', section: 'Getting Started', title: 'Adding SSH to GitHub', keywords: 'add ssh github account authentication permission test connect' },
+  { id: 'multiple-accounts', section: 'Advanced Setup', title: 'Multiple GitHub Accounts', keywords: 'multiple accounts personal work two keys separate second identity' },
+  { id: 'ssh-config', section: 'Advanced Setup', title: 'SSH Config File', keywords: 'ssh config host hostname identityfile alias personal teamb manage' },
+  { id: 'cloning', section: 'Advanced Setup', title: 'Cloning the Repository', keywords: 'clone repository repo remote origin structure developers projects jio bajaj mrf' },
+  { id: 'branch-workflow', section: 'Daily Workflow', title: 'Branch Workflow', keywords: 'branch feature fix hotfix docs chore naming convention checkout pull push merge strategy protected main' },
+  { id: 'commits', section: 'Daily Workflow', title: 'Commit Message Standards', keywords: 'commit message conventional feat fix docs style refactor test chore format' },
+  { id: 'pull-requests', section: 'Daily Workflow', title: 'Creating Pull Requests', keywords: 'pull request PR review template checklist approve CI checks squash merge label' },
+  { id: 'sync', section: 'Daily Workflow', title: 'Sync & Update Repository', keywords: 'sync update pull rebase merge conflict markers resolve stash HEAD' },
+  { id: 'troubleshooting', section: 'Help', title: 'Troubleshooting', keywords: 'error permission denied wrong author main undo reset stash github actions blocked CI fix' },
+  { id: 'official-docs', section: 'Reference', title: 'Official Documentation', keywords: 'official docs git github conventional commits codeowners actions cheat sheet' },
+];
+
+function openSearch() {
+  document.getElementById('search-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('search-input').focus(), 50);
+}
+
+function closeSearch(e) {
+  if (e.target === document.getElementById('search-overlay')) {
+    document.getElementById('search-overlay').classList.remove('open');
+    document.getElementById('search-input').value = '';
+    document.getElementById('search-results').innerHTML = '<div class="search-empty">Type to search across all sections…</div>';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+  if (e.key === 'Escape') {
+    document.getElementById('search-overlay').classList.remove('open');
+  }
+});
+
+function doSearch(query) {
+  const q = query.toLowerCase().trim();
+  const container = document.getElementById('search-results');
+  if (!q) {
+    container.innerHTML = '<div class="search-empty">Type to search across all sections…</div>';
+    return;
+  }
+  const results = searchData.filter(d =>
+    d.title.toLowerCase().includes(q) ||
+    d.keywords.toLowerCase().includes(q) ||
+    d.section.toLowerCase().includes(q)
+  );
+  if (!results.length) {
+    container.innerHTML = '<div class="search-empty">No results found for "' + query + '"</div>';
+    return;
+  }
+  container.innerHTML = results.map(r => {
+    const hl = (text) => text.replace(new RegExp(`(${q})`, 'gi'), '<mark>$1</mark>');
+    return `<div class="search-result" onclick="goTo('${r.id}')">
+      <div class="search-result-title">${hl(r.title)}</div>
+      <div class="search-result-section">${r.section}</div>
+    </div>`;
+  }).join('');
+}
+
+function goTo(id) {
+  document.getElementById('search-overlay').classList.remove('open');
+  document.getElementById('search-input').value = '';
+  const el = document.getElementById(id);
+  if (el) { el.scrollIntoView({ behavior: 'smooth' }); }
+  updateNav(id);
+}
+
+// ── THEME ──
+function toggleTheme() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  const icon = document.getElementById('theme-icon');
+  if (next === 'light') {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+}
+
+// ── READING MODE ──
+function toggleReading() {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-reading');
+  const next = current === 'true' ? 'false' : 'true';
+  html.setAttribute('data-reading', next);
+  document.getElementById('reading-btn').classList.toggle('active', next === 'true');
+  localStorage.setItem('reading', next);
+}
+
+// ── SIDEBAR ──
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+function navClick(el) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  if (window.innerWidth < 900) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+}
+
+function updateNav(id) {
+  document.querySelectorAll('.nav-item').forEach(i => {
+    i.classList.toggle('active', i.getAttribute('href') === '#' + id);
+  });
+}
+
+// ── COPY CODE ──
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    btn.textContent = '✓ Copied';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = '⧉ Copy';
+    }, 2000);
+  });
+}
+
+// ── PROGRESS BAR ──
+window.addEventListener('scroll', () => {
+  const scroll = window.scrollY;
+  const height = document.body.scrollHeight - window.innerHeight;
+  const pct = height > 0 ? (scroll / height) * 100 : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+
+  const btn = document.getElementById('back-top');
+  btn.classList.toggle('show', scroll > 400);
+
+  // Highlight active nav item
+  const sections = document.querySelectorAll('.doc-section');
+  let current = '';
+  sections.forEach(s => {
+    if (s.getBoundingClientRect().top < 120) current = s.id;
+  });
+  if (current) updateNav(current);
+});
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── INIT ──
+(function() {
+  const theme = localStorage.getItem('theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  if (theme === 'light') {
+    const icon = document.getElementById('theme-icon');
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  }
+  const reading = localStorage.getItem('reading') || 'false';
+  document.documentElement.setAttribute('data-reading', reading);
+  if (reading === 'true') document.getElementById('reading-btn').classList.add('active');
+})();
+</script>
+</body>
+</html>
