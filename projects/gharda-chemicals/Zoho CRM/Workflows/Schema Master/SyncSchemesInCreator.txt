@@ -1,0 +1,171 @@
+void automation.SyncSchemesMasterInCreator(Int schemeId)
+{
+SchemeData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Scheme_Master/" + schemeId
+	type :GET
+	connection:"zohocrm"
+];
+schemeDetails = SchemeData.get("data");
+info schemeDetails;
+if(schemeDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Scheme Master";
+	syncc.put("Crm_Record_Id",schemeId.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncSchemesMasterInCreator");
+	//Function Name
+	dataMap = Map();
+	//dataMap.put("Order_Number",ifnull(SODetails.getJson("So_No"),""));
+	dataMap.put("CRM_SO_ID",ifnull(schemeId.toString(),""));
+	dataMap.put("Scheme_Name",ifnull(schemeDetails.getJson("Name"),""));
+	dataMap.put("Scheme_Type",ifnull(schemeDetails.getJson("Scheme_Type"),""));
+	dataMap.put("Description",ifnull(schemeDetails.getJson("Remarks_Notes"),""));
+	dataMap.put("End_Date",ifnull(schemeDetails.getJson("Valid_Upto").toString("dd-MMM-yyyy"),""));
+	dataMap.put("Start_Date",ifnull(schemeDetails.getJson("Start_Date").toString("dd-MMM-yyyy"),""));
+	dataMap.put("Status",ifnull(schemeDetails.getJson("Status"),""));
+	dataMap.put("Scheme_Code",ifnull(schemeDetails.getJson("Scheme_Code"),""));
+	dataMap.put("Customer_Type",ifnull(schemeDetails.getJson("Customer_Type"),""));
+	dataMap.put("Min_Order_Qty",ifnull(schemeDetails.getJson("Minimum_Order_Quantity"),""));
+	dataMap.put("Discount_Value",ifnull(schemeDetails.getJson("Discount_Value"),""));
+	dataMap.put("Discount_Type",ifnull(schemeDetails.getJson("Discount_Type"),""));
+	dataMap.put("SAP_ID",ifnull(schemeDetails.getJson("SAP_ID"),""));
+	dataMap.put("Product_Code",ifnull(schemeDetails.getJson("Product_Code"),""));
+	getRegions = schemeDetails.getJSON("Regions");
+	if(getRegions.size() > 0)
+	{
+		Regionss = List();
+		for each  region in getRegions
+		{
+			mps = Map();
+			regName = region.getJSON("Regions").getJSON("name");
+			RegionId = region.getJSON("id");
+			if(RegionId != null)
+			{
+				getRData = zoho.crm.getRecordById("Region_Master",RegionId);
+				if(getRData.isEmpty() == false)
+				{
+					RId = getRData.getJSON("Creator_record_Id");
+					if(RId != null && RId != "")
+					{
+						mps.put("id",RId);
+						Regionss.add(RId);
+					}
+					else
+					{
+						getreg = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters","Region_Name == \"" + regName + "\"",0,200,"creator_con");
+						if(getreg.get("code") == 3000)
+						{
+							data = getreg.get("data");
+							regionId = data.getJson("ID");
+							mps.put("id",regionId);
+							Regionss.add(regionId);
+						}
+					}
+				}
+			}
+		}
+		dataMap.put("Applicable_Region",Regionss);
+	}
+	Ordered_Items = schemeDetails.getJson("Product_Schemes");
+	if(Ordered_Items.isEmpty() == false)
+	{
+		proList = List();
+		for each  orderItem in Ordered_Items
+		{
+			productId = orderItem.get("Product_Name").get("id");
+			prodData = zoho.crm.getRecordById("Products",productId);
+			if(prodData.isEmpty() == false)
+			{
+				prodCode = prodData.getJSON("Product_Code");
+			}
+			SKU = orderItem.get("SKU");
+			getproData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","Product_Code == \"" + prodCode.toString() + "\"",1,200,"creator_con");
+			proMap = Map();
+			if(getproData.get("code") == 3000)
+			{
+				proMap.put("Product_Name",getproData.get("data").getJson("ID"));
+				proMap.put("SKU",getproData.get("data").getJson("ID"));
+				proMap.put("Min_Order_Qty",orderItem.getJSON("Min_Order_Qty"));
+				if(orderItem.getJSON("Discount_Type") == "Percentage")
+				{
+					proMap.put("Discount",orderItem.getJSON("Discount"));
+				}
+				if(orderItem.getJSON("Discount_Type") == "Flat")
+				{
+					prodPriceMaster = zoho.crm.searchRecords("Price_Master","(Product_Name:equals:" + productId + ")");
+					if(!prodPriceMaster.isEmpty())
+					{
+						productPrice = prodPriceMaster.get(0).getJSON("Final_Price");
+						discountVal = orderItem.getJSON("Discount");
+						minQty = orderItem.getJSON("Min_Order_Qty");
+						info "Product Price:" + productPrice;
+						info "minium order quantity:" + minQty;
+						if(productPrice != null && minQty != null && minQty > 0)
+						{
+							info "Testing";
+							// Percentage = (Flat Discount / (Product Price × Min Qty)) × 100
+							calculatePercentage = discountVal / (productPrice * minQty) * 100;
+							info "Calculate Percentage: " + calculatePercentage;
+							proMap.put("Discount",calculatePercentage.round(2));
+						}
+					}
+				}
+			}
+			proList.add(proMap);
+		}
+		dataMap.put("Products",proList);
+	}
+	info dataMap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(schemeDetails.getJSON("Creator_record_Id") != null && schemeDetails.getJSON("Creator_record_Id") != "")
+	{
+		creatorRecordID = schemeDetails.getJSON("Creator_record_Id");
+		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Scheme_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",Updateprod);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		getSchemefromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Scheme_Masters","CRM_SO_ID == \"" + schemeId.toString() + "\"",0,200,"creator_con");
+		info getSchemefromCreator;
+		othermap = Map();
+		if(getSchemefromCreator.get("code") == 3000)
+		{
+			info "Update";
+			creatorRecordID = getSchemefromCreator.get("data").getJSON("ID");
+			Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Scheme_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",Updateprod);
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			syncc.put("Trigger_Type","Update");
+		}
+		else
+		{
+			info "Test";
+			CreateScheme = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Scheme_Master",dataMap,othermap,"creator_con");
+			info CreateScheme;
+			syncc.put("Function_Response",CreateScheme);
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			syncc.put("Trigger_Type","Create");
+			if(CreateScheme.get("code") == 3000)
+			{
+				info CreateScheme;
+				updateCRM = Map();
+				creatorRecordID = CreateScheme.get("data").get("ID");
+				updateCRM.put("Creator_record_Id",CreateScheme.get("data").get("ID"));
+				updatecreatorID = zoho.crm.updateRecord("Scheme_Master",schemeId,updateCRM);
+			}
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

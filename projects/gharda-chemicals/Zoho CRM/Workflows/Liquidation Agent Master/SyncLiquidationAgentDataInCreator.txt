@@ -1,0 +1,356 @@
+void automation.SyncLiquidationInCreator1(Int liquidId)
+{
+CNFData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Liquidation_Agent_Master/" + liquidId
+	type :GET
+	connection:"zohocrm"
+];
+lquidationdetails = CNFData.get("data").get(0);
+info lquidationdetails;
+// lquidationdetails = zoho.crm.getRecordById("Liquidation_Agent_Master",liquidId);
+if(lquidationdetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Liquidation Agent Master";
+	syncc.put("Crm_Record_Id",liquidId.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncLiquidationAgentsInCreator");
+	//Function Name
+	profilePic = lquidationdetails.getJSON("Profile_Pic");
+	aadharCard = lquidationdetails.getJSON("Upload_Aadhar_Card");
+	panCard = lquidationdetails.getJSON("Upload_Pan_Card");
+	creatorRecordID = lquidationdetails.get("Creator_record_Id");
+	district = lquidationdetails.getJSON("Sales_District");
+	liquidmap = Map();
+	liquidmap.put("Liquidation_Agent_Name",ifnull(lquidationdetails.get("Name"),""));
+	liquidmap.put("Headquarter",ifnull(lquidationdetails.get("Headquarter"),""));
+	liquidmap.put("CRMID",liquidId.toString());
+	liquidmap.put("Email",ifnull(lquidationdetails.get("Email"),""));
+	// 	liquidmap.put("Territory",ifnull(lquidationdetails.get("Territory_name"),""));
+	liquidmap.put("Aadhar_Card_Number",ifnull(lquidationdetails.get("Aadhar_Card_Number"),""));
+	liquidmap.put("Contact_Number","+91" + ifnull(lquidationdetails.get("Contact_Number"),""));
+	liquidmap.put("Pan_Card_Number",ifnull(lquidationdetails.get("Pan_Card_Number"),""));
+	//liquidmap.put("Market",ifnull(lquidationdetails.get("Market"),""));
+	/*********************************************Map Zone******************************************************************/
+	Zone = lquidationdetails.getJSON("Zone_Name");
+	if(Zone != null)
+	{
+		zoneId = Zone.getJSON("id");
+		if(zoneId != null)
+		{
+			zoneData = zoho.crm.getRecordById("Zone_Master",zoneId);
+			if(zoneData.isEmpty() == false)
+			{
+				zn_Id = zoneData.getJSON("Creator_rec_id");
+				if(zn_Id != null && zn_Id != "")
+				{
+					liquidmap.put("Zone",zn_Id);
+				}
+				else
+				{
+					zonee = Zone.getJSON("name");
+					getzone = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Zones","Zone == \"" + zonee + "\"",0,200,"creator_con");
+					if(getzone.get("code") == 3000)
+					{
+						data = getzone.get("data");
+						zoneID = data.getJson("ID");
+						liquidmap.put("Zone",zoneID);
+					}
+				}
+			}
+		}
+	}
+	/*********************************************Map Region************************************************************/
+	region = lquidationdetails.getJSON("Region");
+	if(region != null)
+	{
+		RegionId = region.getJSON("id");
+		if(RegionId != null)
+		{
+			getRData = zoho.crm.getRecordById("Region_Master",RegionId);
+			if(getRData.isEmpty() == false)
+			{
+				RId = getRData.getJSON("Creator_record_Id");
+				if(RId != null && RId != "")
+				{
+					liquidmap.put("Region",RId);
+				}
+				else
+				{
+					Region = region.get("name");
+					getRegion = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters","Region_Name == \"" + Region + "\"",0,200,"creator_con");
+					if(getRegion.get("code") == 3000)
+					{
+						data = getRegion.get("data");
+						regionId = data.getJson("ID");
+						liquidmap.put("Region",regionId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Territory******************************************************/
+	territory = lquidationdetails.getJSON("Territory_Name");
+	if(territory != null)
+	{
+		territoryId = territory.getJSON("id");
+		if(territoryId != null)
+		{
+			getData = zoho.crm.getRecordById("Sub_Territory",territoryId);
+			if(getData.isEmpty() == false)
+			{
+				territoryId = getData.getJSON("Creator_rec_id");
+				if(territoryId != null && territoryId != "")
+				{
+					liquidmap.put("Territory",territoryId);
+				}
+				else
+				{
+					territory = territory.get("name");
+					get_territory = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Territories","Territory_Name == \"" + territory + "\"",0,200,"creator_con");
+					if(get_territory.get("code") == 3000)
+					{
+						data = get_territory.get("data");
+						tId = data.getJson("ID");
+						liquidmap.put("Territory",tId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Region******************************************************/
+	if(district != null)
+	{
+		districtId = district.getJSON("id");
+		if(districtId != null)
+		{
+			getdistrictData = zoho.crm.getRecordById("District_Master",districtId);
+			if(getdistrictData.isEmpty() == false)
+			{
+				DId = getdistrictData.getJSON("Creator_rec_id");
+				if(DId != null && DId != "")
+				{
+					liquidmap.put("District",DId);
+				}
+				else
+				{
+					districtName = district.getJSON("name");
+					getdist = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_District_Masters","District_Name == \"" + districtName + "\"",0,200,"creator_con");
+					if(getdist.get("code") == 3000)
+					{
+						data2 = getdist.get("data");
+						districtId = data2.getJson("ID");
+						liquidmap.put("District",districtId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Taluka******************************************************/
+	tlka = lquidationdetails.getJSON("Taluka_Name");
+	if(tlka != null)
+	{
+		talukaId = tlka.getJSON("id");
+		if(talukaId != null)
+		{
+			getTalukaData = zoho.crm.getRecordById("Taluka_Master",talukaId);
+			if(getTalukaData.isEmpty() == false)
+			{
+				Taluka_Id = getTalukaData.getJSON("Creator_rec_id");
+				if(Taluka_Id != null && Taluka_Id != "")
+				{
+					liquidmap.put("Taluka",Taluka_Id);
+				}
+				else
+				{
+					taluka = tlka.getJSON("name");
+					get_taluka = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Taluka_Report","Taluka_Name == \"" + taluka + "\"",0,200,"creator_con");
+					if(get_taluka.get("code") == 3000)
+					{
+						data = get_taluka.get("data");
+						talukaId = data.getJson("ID");
+						liquidmap.put("Taluka",talukaId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Market******************************************************/
+	mkt = lquidationdetails.getJSON("Market_Name");
+	if(mkt != null)
+	{
+		marketId = mkt.getJSON("id");
+		if(marketId != null)
+		{
+			getMarketData = zoho.crm.getRecordById("Market_Master",marketId);
+			if(getMarketData.isEmpty() == false)
+			{
+				mrkt_Id = getMarketData.getJSON("Creator_rec_id");
+				if(mrkt_Id != null && mrkt_Id != "")
+				{
+					liquidmap.put("Market",mrkt_Id);
+				}
+				else
+				{
+					market = mkt.getJSON("name");
+					get_market = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Markets","Market_Name == \"" + market + "\"",0,200,"creator_con");
+					if(get_market.get("code") == 3000)
+					{
+						data = get_market.get("data");
+						mId = data.getJson("ID");
+						liquidmap.put("Market",mId);
+					}
+				}
+			}
+		}
+	}
+	liquidmap.put("Street",ifnull(lquidationdetails.get("Address_Line_1"),""));
+	liquidmap.put("City",ifnull(lquidationdetails.get("City_District"),""));
+	liquidmap.put("Zipcode",ifnull(lquidationdetails.get("Postal_Code"),""));
+	liquidmap.put("Address_State",ifnull(lquidationdetails.get("State_Province"),""));
+	liquidmap.put("State",ifnull(lquidationdetails.get("State"),""));
+	liquidmap.put("Country",ifnull(lquidationdetails.get("Country"),""));
+	village = ifnull(lquidationdetails.get("Village_Name"),"");
+	if(village.isEmpty() == false)
+	{
+		liquidmap.put("Village",ifnull(village.get("name"),""));
+	}
+	liquidmap.put("CRMID",liquidId.toString());
+	info liquidmap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(!isNull(creatorRecordID))
+	{
+		getDistributorData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Liquidation_Agent_List",creatorRecordID,"creator_con");
+		info getDistributorData;
+		// 	if(getDistributorData.isNull() == false)
+		if(getDistributorData.get("code") == 3100)
+		{
+			CreateDist = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent",liquidmap,othermap,"creator_con");
+			info CreateDist;
+			syncc.put("Function_Response",CreateDist);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Create");
+			//Trigger  
+			if(CreateDist.get("code") == 3000)
+			{
+				updateCRM = Map();
+				updateCRM.put("Creator_record_Id",CreateDist.get("data").get("ID"));
+				creatorRecordID = CreateDist.get("data").get("ID");
+				updatecreatorID = zoho.crm.updateRecord("Liquidation_Agent_Master",liquidId,updateCRM);
+			}
+		}
+		else
+		{
+			UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Liquidation_Agent_List",creatorRecordID.toLong(),liquidmap,othermap,"creator_con");
+			info UpdateDist;
+			syncc.put("Function_Response",UpdateDist);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			/////////////////////
+		}
+	}
+	else
+	{
+		CreateDist = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent",liquidmap,othermap,"creator_con");
+		info CreateDist;
+		syncc.put("Function_Response",CreateDist);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateDist.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",CreateDist.get("data").get("ID"));
+			creatorRecordID = CreateDist.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Liquidation_Agent_Master",liquidId,updateCRM);
+		}
+	}
+	/*********************************************Upload Profile Photo*****************************************/
+	if(profilePic != null)
+	{
+		fileId = profilePic.getJSON("File_Id__s");
+		info fileId;
+		downloaded_file = invokeurl
+		[
+			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+			type :GET
+			connection:"zohocrm"
+		];
+		downloaded_file.setParamName("file");
+		if(downloaded_file.isEmpty() == false)
+		{
+			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Liquidation_Agent_List/" + creatorRecordID + "/Profile_Pic/upload";
+			response = invokeurl
+			[
+				url :upload_url
+				type :POST
+				files:downloaded_file
+				connection:"creator_con"
+			];
+			info response;
+		}
+	}
+	/*********************************************Upload Pan Card*****************************************/
+	// 	if(panCard != null)
+	// 	{
+	// 		fileId = panCard.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Liquidation_Agent_List/" + creatorRecordID + "/Upload_Pan_Card/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/*********************************************Upload Aadhaar card*****************************************/
+	// 	if(aadharCard != null)
+	// 	{
+	// 		fileId = aadharCard.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Liquidation_Agent_List/" + creatorRecordID + "/Upload_Aadhar_Card/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

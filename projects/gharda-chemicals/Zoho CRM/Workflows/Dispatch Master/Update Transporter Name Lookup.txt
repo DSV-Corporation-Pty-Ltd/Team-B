@@ -1,0 +1,74 @@
+void automation.UpdateTransporterName(Int id,String TransporterName,String SAPId)
+{
+data = Map();
+searchCriteria = "(Name:equals:" + TransporterName + ")";
+searchTransporter = zoho.crm.searchRecords("Transport_Master",searchCriteria);
+if(searchTransporter.isEmpty() == false)
+{
+	transpDetails = searchTransporter.get(0);
+	// 	info transpDetails;
+	// 	info transpDetails.getJSON("id");
+	data.put("Transporter_Name",transpDetails.getJSON("id").toLong());
+	info transpDetails.getJSON("CNF_Name");
+	if(transpDetails.getJSON("CNF_Name") != null)
+	{
+		data.put("CNF_Name",transpDetails.getJSON("CNF_Name").getJSON("id"));
+	}
+}
+if(SAPId != null && SAPId != "")
+{
+	invCriteria = "(SAP_ID:equals:" + SAPId + ")";
+	searchInvoice = zoho.crm.searchRecords("Invoices",invCriteria);
+	//info searchInvoice;
+	if(searchInvoice.isEmpty() == false && searchInvoice.size() > 0)
+	{
+		getID = searchInvoice.get(0).getJSON("id");
+		if(getID != null)
+		{
+			InvData = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/Invoices/" + getID
+				type :GET
+				connection:"zohocrm"
+			];
+			invDetails = InvData.get("data");
+			if(invDetails.isEmpty() == false)
+			{
+				getSO = invDetails.get(0).getJSON("Sales_Order");
+				if(getSO != null && getSO.isEmpty() == false)
+				{
+					data.put("Sales_Order",getSO.getJSON("id"));
+				}
+				if(invDetails.get(0).getJSON("Invoiced_Items").size() > 0 && invDetails.get(0).getJSON("Invoiced_Items").isEmpty() == false)
+				{
+					dispItems = List();
+					invItems = invDetails.get(0).getJSON("Invoiced_Items");
+					for each  recc in invItems
+					{
+						getProductName = recc.getJSON("Product_Name");
+						itemss = Map();
+						itemss.put("Dispatched_Quantity",recc.getJSON("Quantity"));
+						itemss.put("Quantity",recc.getJSON("Quantity"));
+						itemss.put("Price",recc.getJSON("Price"));
+						if(getProductName != null && getProductName.isEmpty() == false)
+						{
+							itemss.put("Product",getProductName.getJSON("id"));
+						}
+						itemss.put("Product_Code1",recc.getJSON("Product_Code"));
+						dispItems.add(itemss);
+					}
+					data.put("Line_Items",dispItems);
+				}
+				data.put("GST",invDetails.get(0).getJSON("GST"));
+				data.put("IGST",invDetails.get(0).getJSON("IGST"));
+				data.put("Tax_Amount",invDetails.get(0).getJSON("Tax_Amount"));
+			}
+		}
+	}
+}
+info data;
+if(data.isEmpty() == false)
+{
+	info zoho.crm.updateRecord("Dispatch_Master",id,data);
+}
+}

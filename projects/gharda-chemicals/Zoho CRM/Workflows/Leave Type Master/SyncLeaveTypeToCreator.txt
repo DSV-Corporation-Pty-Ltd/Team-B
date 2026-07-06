@@ -1,0 +1,74 @@
+void automation.syncLeaveTypeToCreator(Int id)
+{
+data = zoho.crm.getRecordById("Leave_Type",id);
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Leave Type";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncLeaveTypeToCreator");
+	//Function Name
+	othermap = Map();
+	dataMap = Map();
+	creatorRecordID = data.getJSON("Creator_rec_id");
+	//dataMap.put("zoho_crm_id",id.toString());
+	dataMap.put("sync_from_crm",true);
+	dataMap.put("Leave_Type",ifnull(data.getJSON("Name"),""));
+	dataMap.put("Year_field",ifnull(data.getJSON("Year"),0));
+	dataMap.put("Description",ifnull(data.getJSON("Description"),""));
+	dataMap.put("Max_Allowed_Days",ifnull(data.getJSON("Max_Allowed_Days"),0));
+	/*******************************************************Search Record in Crm****************************************************/
+	creatorId = "";
+	if(data.getJSON("Creator_rec_id") != "" && data.getJSON("Creator_rec_id") != null)
+	{
+		creatorId = data.getJSON("Creator_rec_id");
+	}
+	else
+	{
+		getLeaveData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Leave_Type_Masters","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+		if(getLeaveData.get("code") == 3000)
+		{
+			info "Update";
+			creatorId = getLeaveData.get("data").getJSON("ID");
+		}
+	}
+	info creatorId;
+	if(creatorId != "" && creatorId != null)
+	{
+		info "Uodate Record";
+		UpdateRec = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Leave_Type_Masters",creatorId.toLong(),dataMap,othermap,"creator_con");
+		info UpdateRec;
+		syncc.put("Function_Response",UpdateRec);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		dataMap.put("zoho_crm_id",id.toString());
+		CreateLeaveTypeData = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Leave_Type_Master",dataMap,othermap,"creator_con");
+		info CreateLeaveTypeData;
+		syncc.put("Function_Response",CreateLeaveTypeData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateLeaveTypeData.get("code") == 3000)
+		{
+			updateCRM = Map();
+			creatorId = CreateLeaveTypeData.get("data").get("ID");
+			updateCRM.put("Creator_rec_id",CreateLeaveTypeData.get("data").get("ID"));
+			updatecreatorID = zoho.crm.updateRecord("Leave_Type",id,updateCRM);
+			info updatecreatorID;
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

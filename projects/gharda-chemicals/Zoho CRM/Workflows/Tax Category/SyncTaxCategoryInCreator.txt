@@ -1,0 +1,75 @@
+void automation.syncTaxCategoryInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Tax_Category",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Tax Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncTaxCategoryInCreator");
+	//Function Name
+	dataMap = Map();
+	othermap = Map();
+	searchId = id.toString();
+	CreatorRecId = data.getJSON("Creator_rec_id");
+	dataMap.put("Tax_Category",data.getJSON("Name"));
+	dataMap.put("description",data.getJSON("Description"));
+	/*********************************************Create/Update Record in Creator*********************/
+	if(CreatorRecId.isNull() == false)
+	{
+		getTaxData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Tax_Categories",CreatorRecId,"creator_con");
+		if(getTaxData.isNull() == false)
+		{
+			UpdateTaxCategory = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Tax_Categories",CreatorRecId.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",UpdateTaxCategory);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+			creatorRecordID = CreatorRecId.toLong();
+		}
+	}
+	else if(CreatorRecId.isNull() == true || CreatorRecId == "")
+	{
+		getTax = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Tax_Categories","Z_Crm_Id == \"" + searchId + "\"",0,200,"creator_con");
+		if(getTax.get("code") == 3000)
+		{
+			taxID = getTax.getJSON("data").getJson("ID");
+			creatorRecordID = taxID.toLong();
+			UpdateTaxCategory = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Tax_Categories",taxID.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",UpdateTaxCategory);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+		}
+	}
+	else
+	{
+		dataMap.put("Z_Crm_Id",id.toString());
+		CreateTaxCategory = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Tax_Category",dataMap,othermap,"creator_con");
+		info CreateTaxCategory;
+		syncc.put("Function_Response",CreateTaxCategory);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateTaxCategory.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateTaxCategory.get("data").get("ID"));
+			creatorRecordID = CreateTaxCategory.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Tax_Category",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

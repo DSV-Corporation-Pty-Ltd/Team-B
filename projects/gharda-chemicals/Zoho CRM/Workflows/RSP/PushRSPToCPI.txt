@@ -1,0 +1,109 @@
+void automation.CreateRSPtoCPI(Int id)
+{
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v7/functions/testfunc/actions/execute?auth_type=apikey&zapikey=1003.39fc3833f02c1bdc6b94501fbb49565f.9606408102d38e58538a704592709e01"
+	type :POST
+];
+if(response.get("code") == "success")
+{
+	plantname = "";
+	details = response.get("details");
+	authToken = details.get("output");
+	headermap = Map();
+	headermap.put("Authorization","Bearer " + authToken.toString());
+	headermap.put("Content-Type","application/json");
+	getRSPData = zoho.crm.getRecordById("RSP",id);
+	if(getRSPData.isEmpty() == false)
+	{
+		Owneremail = getRSPData.get("Owner").get("email");
+		searchemployee = zoho.crm.searchRecords("Employee_Master","Email:equals:" + Owneremail);
+		if(searchemployee.size() > 0)
+		{
+			mainplantname = searchemployee.getjson("Main_Plant");
+			if(!isNull(mainplantname))
+			{
+				plantname = mainplantname.get("name");
+				info plantname;
+			}
+		}
+		skuList = getRSPData.get("SKU_List");
+		materialsList = List();
+		months = {"January","February","March","April","May","June","July","August","September","October","November","December"};
+		monthNumberMap = Map();
+		monthNumberMap.put("January","01");
+		monthNumberMap.put("February","02");
+		monthNumberMap.put("March","03");
+		monthNumberMap.put("April","04");
+		monthNumberMap.put("May","05");
+		monthNumberMap.put("June","06");
+		monthNumberMap.put("July","07");
+		monthNumberMap.put("August","08");
+		monthNumberMap.put("September","09");
+		monthNumberMap.put("October","10");
+		monthNumberMap.put("November","11");
+		monthNumberMap.put("December","12");
+		year = zoho.currentdate.getYear();
+		info skuList;
+		for each  rec in skuList
+		{
+			materialMap = Map();
+			forecastList = List();
+			productId = rec.get("Product").get("id");
+			productRec = zoho.crm.getRecordById("Products",productId);
+			productCode = productRec.get("Product_Code");
+			materialMap.put("MaterialID",productCode);
+			for each  m in months
+			{
+				qty = rec.get(m);
+				if(qty != null && qty != "" && qty != "0.00")
+				{
+					forecastMap = Map();
+					monthNumber = monthNumberMap.get(m);
+					monthDate = year + "-" + monthNumber + "-01";
+					forecastMap.put("Month",monthDate);
+					forecastMap.put("Quantity",qty);
+					forecastList.add(forecastMap);
+				}
+			}
+			if(forecastList.size() > 0)
+			{
+				materialMap.put("Forecast",forecastList);
+				materialsList.add(materialMap);
+			}
+		}
+		quarterlyPlan = Map();
+		quarterlyPlan.put("Plant","1002");
+		quarterlyPlan.put("RequirementType","VSFB");
+		quarterlyPlan.put("Version","00");
+		quarterlyPlan.put("Materials",materialsList);
+		finalMap = Map();
+		finalMap.put("QuarterlyPlan",quarterlyPlan);
+		info finalMap;
+		geturl = zoho.crm.getOrgVariable("Sales_Planning_Endpoint");
+		CreateSalesplanning = invokeurl
+		[
+			url :geturl
+			type :POST
+			parameters:finalMap.toString()
+			headers:headermap
+		];
+		info CreateSalesplanning;
+		// 		/*********************************Log master Info*************************************************/
+		syncc = Map();
+		modulename = "RSP";
+		syncc.put("Crm_Record_Id",id.toString());
+		syncc.put("Module_Name",modulename);
+		syncc.put("Syncing_To","CPI");
+		syncc.put("Syncing_From","Crm");
+		syncc.put("API_URL",geturl.toString());
+		syncc.put("API_Payload",finalMap.toString());
+		syncc.put("Name","CreateRSPtoCPI");
+		syncc.put("Function_Response",CreateSalesplanning);
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		syncc.put("Trigger_Type","Create");
+		syncc.put("Status",CreateSalesplanning.get("Status"));
+		info zoho.crm.createRecord("Log_Master",syncc);
+	}
+}
+}

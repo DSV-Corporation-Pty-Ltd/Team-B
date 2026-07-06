@@ -1,0 +1,57 @@
+void automation.SyncZoneMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Zone_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Zone Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncZoneMasterInCreator");
+	//Function Name
+	creatorRecordID = data.get("Creator_rec_id");
+	zoneName = data.get("Name");
+	dataMap = Map();
+	dataMap.put("Zone",zoneName);
+	/*********************************************Create/Update Zone Record in Creator*********************/
+	othermap = Map();
+	// 	getZone = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Zones","Zone == \"" + zoneName + "\"",0,200,"creator_con");
+	// 	if(getZone.get("code") == 3000)
+	// 	{
+	// 		info "Update";
+	// 	}
+	if(creatorRecordID != null)
+	{
+		UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Zones",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger  
+	}
+	else
+	{
+		CreateZone = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Zone",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateZone);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateZone.get("code") == 3000)
+		{
+			info "Create";
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateZone.get("data").get("ID").toString());
+			creatorRecordID = CreateZone.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Zone_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

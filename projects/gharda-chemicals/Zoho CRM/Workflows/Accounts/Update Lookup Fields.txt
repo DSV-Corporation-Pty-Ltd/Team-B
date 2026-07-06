@@ -1,0 +1,159 @@
+void automation.Update_Lookup_Fields(Int id,String sales_org,String sales_office,String sales_district,String delivering_plant,String tax_category,String account_group,String cust_pric_proc,String division,String classification)
+{
+datamap = Map();
+/*********************************************************Sales Org*******************************************************/
+if(sales_org != null && sales_org != "")
+{
+	searchCriteria = "(Name:equals:" + sales_org + ")";
+	searchsales_org = zoho.crm.searchRecords("Sales_Org_Details",searchCriteria);
+	if(searchsales_org != null && searchsales_org.size() > 0)
+	{
+		sOrgId = searchsales_org.get(0).get("id");
+		info sOrgId;
+		if(sOrgId != null)
+		{
+			datamap.put("Sales_Org_String",sOrgId.toLong());
+		}
+	}
+}
+/*******************************************************Sales Office*******************************************************/
+if(sales_office != null && sales_office != "")
+{
+	searchCriteria1 = "(Name:equals:" + sales_office + ")";
+	search_sales_office = zoho.crm.searchRecords("Sales_Office",searchCriteria1);
+	if(search_sales_office != null && search_sales_office.size() > 0)
+	{
+		soId = search_sales_office.get(0).get("id");
+		info soId;
+		if(soId != null)
+		{
+			datamap.put("Sales_Office_String",soId.toLong());
+		}
+	}
+}
+/*******************************************************Sales District*******************************************************/
+if(sales_district != null && sales_district != "")
+{
+	searchCriteria2 = "(Name:equals:" + sales_district + ")";
+	search_sales_district = zoho.crm.searchRecords("District_Master",searchCriteria2);
+	if(search_sales_district != null && search_sales_district.size() > 0)
+	{
+		sDId = search_sales_district.get(0).get("id");
+		info sDId;
+		if(sDId != null)
+		{
+			datamap.put("Sales_District_String1",sDId.toLong());
+		}
+	}
+}
+/*******************************************************Delivering Plant*******************************************************/
+if(delivering_plant != null && delivering_plant != "")
+{
+	searchCriteria4 = "(Name:equals:" + delivering_plant + ")";
+	search_delivering_plant = zoho.crm.searchRecords("Plants_Master",searchCriteria4);
+	if(search_delivering_plant != null && search_delivering_plant.size() > 0)
+	{
+		dpId = search_delivering_plant.get(0).get("id");
+		info dpId;
+		if(dpId != null)
+		{
+			datamap.put("Delivering_Plant_String",dpId.toLong());
+		}
+	}
+}
+/****************************************************Tax Category*******************************************************/
+if(tax_category != null && tax_category != "")
+{
+	if(classification != "" && classification != null)
+	{
+		regIdList = List();
+		searchCriteria5 = "(Name:equals:" + classification + ")";
+		search_tax_category = zoho.crm.searchRecords("Tax_Category",searchCriteria5);
+		if(search_tax_category != null && search_tax_category.size() > 0)
+		{
+			tcId = search_tax_category.get(0).get("id");
+			info tcId;
+			if(tcId != null)
+			{
+				reg = Map();
+				mps = Map();
+				reg.put("id",tcId.toLong());
+				mps.put("Tax_Category_String",reg);
+				regIdList.add(mps);
+			}
+		}
+		datamap.put("Tax_Category_String",regIdList);
+	}
+}
+/****************************************************Account Group******************************************************/
+if(account_group != null && account_group != "")
+{
+	searchCriteria6 = "(Name:equals:" + account_group + ")";
+	search_account_group = zoho.crm.searchRecords("Customer_Groups_Master",searchCriteria6);
+	if(search_account_group != null && search_account_group.size() > 0)
+	{
+		agId = search_account_group.get(0).get("id");
+		info agId;
+		if(agId != null)
+		{
+			datamap.put("Account_Group_String",agId.toLong());
+		}
+	}
+}
+/****************************************************Customer Price*************************************************/
+if(cust_pric_proc != null && cust_pric_proc != "")
+{
+	searchCriteria7 = "(Name:equals:" + cust_pric_proc + ")";
+	search_cust_pric_proc = zoho.crm.searchRecords("Pricing_Procedure",searchCriteria7);
+	if(search_cust_pric_proc != null && search_cust_pric_proc.size() > 0)
+	{
+		cpId = search_cust_pric_proc.get(0).get("id");
+		info cpId;
+		if(cpId != null)
+		{
+			datamap.put("Customer_Pricing_Procedure_String",cpId.toLong());
+		}
+	}
+}
+/****************************************************Division **********************************************************/
+if(division != null && division != "")
+{
+	searchCriteria8 = "(Name:equals:" + division + ")";
+	searchdivision = zoho.crm.searchRecords("Divisions_Master",searchCriteria8);
+	if(searchdivision != null && searchdivision.size() > 0)
+	{
+		DId = searchdivision.get(0).get("id");
+		info DId;
+		if(DId != null)
+		{
+			datamap.put("Division_String",DId.toLong());
+		}
+	}
+}
+info datamap;
+/************************************************Update Data********************************************************/
+if(regIdList.size() > 0 && datamap.isEmpty() == false)
+{
+	// updateRegions = zoho.crm.updateRecord("Scheme_Master",id, mp);
+	// info updateRegions;
+	datamap1 = Map();
+	datamap1.put("data",{datamap});
+	/*******************************************************Update Record in Crm****************************************************/
+	updateresp = invokeurl
+	[
+		url :"https://www.zohoapis.in/crm/v8/Accounts/" + id
+		type :PUT
+		parameters:datamap1.toString()
+		connection:"zohocrm"
+	];
+	info "updateresp" + updateresp;
+}
+else
+{
+	if(datamap.isEmpty() == false)
+	{
+		updateLookupData = zoho.crm.updateRecord("Accounts",id,datamap);
+		info updateLookupData;
+	}
+}
+}

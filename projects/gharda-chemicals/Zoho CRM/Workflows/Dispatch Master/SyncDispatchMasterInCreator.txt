@@ -1,0 +1,162 @@
+void automation.syncDispatchMasterInCreator(Int id)
+{
+DispatchData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Dispatch_Master/" + id
+	type :GET
+	connection:"zohocrm"
+];
+DispatchDetails = DispatchData.get("data");
+info DispatchDetails;
+if(DispatchDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Dispatch Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncDispatchMasterInCreator");
+	//Function Name
+	dataMap = Map();
+	creatorRecordID = DispatchDetails.getJSON("Creator_rec_id");
+	/*********************************************Map Data *****************************************************************/
+	dataMap.put("zoho_crm_id",ifnull(id.toString(),""));
+	dataMap.put("Remarks",ifnull(DispatchDetails.getJson("Remarks"),""));
+	dataMap.put("Dispatch_Status",ifnull(DispatchDetails.getJson("Dispatch_Status"),""));
+	dispatchDate = "";
+	if(DispatchDetails.getJSON("Dispatch_Date") != null)
+	{
+		dispatchDate = DispatchDetails.getJSON("Dispatch_Date").toString("dd-MMM-yyyy");
+	}
+	dataMap.put("Dispatch_Date",dispatchDate);
+	deliveryDate = "";
+	if(DispatchDetails.getJSON("Delivery_Date") != null)
+	{
+		deliveryDate = DispatchDetails.getJSON("Delivery_Date").toString("dd-MMM-yyyy");
+	}
+	dataMap.put("Delivery_Date",deliveryDate);
+	/*********************************************Billing Address***************************************************************/
+	dataMap.put("Billing_Street",ifnull(DispatchDetails.getJson("Billing_Street"),""));
+	dataMap.put("Billing_City","+91" + ifnull(DispatchDetails.getJson("Billing_City"),""));
+	dataMap.put("Billing_State",ifnull(DispatchDetails.getJson("Billing_State"),""));
+	dataMap.put("Billing_Code",ifnull(DispatchDetails.getJson("Billing_Code"),""));
+	dataMap.put("Billing_Country",ifnull(DispatchDetails.getJson("Billing_Country"),""));
+	/*********************************************Shipping Address***************************************************************/
+	dataMap.put("Shipping_Street",ifnull(DispatchDetails.getJson("Shipping_Street"),""));
+	dataMap.put("Shipping_City","+91" + ifnull(DispatchDetails.getJson("Shipping_City"),""));
+	dataMap.put("Shipping_State",ifnull(DispatchDetails.getJson("Shipping_State"),""));
+	dataMap.put("Shipping_Code",ifnull(DispatchDetails.getJson("Shipping_Code"),""));
+	dataMap.put("Shipping_Country",ifnull(DispatchDetails.getJson("Shipping_Country"),""));
+	/*********************************************Get Distributor *****************************************************************/
+	accid = null;
+	accountName = DispatchDetails.getJson("Customer_Name");
+	if(accountName.isEmpty() == false)
+	{
+		accid = accountName.get("id");
+		accountData = zoho.crm.getRecordById("Accounts",accid);
+		if(accountData.isEmpty() == false)
+		{
+			creatorIdd = accountData.getJSON("Creator_record_Id");
+			if(creatorIdd != null)
+			{
+				dataMap.put("Customer_Name",creatorIdd);
+			}
+			else
+			{
+				getContact = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customers","(zoho_crm_id == \"" + accid.toString() + "\")",1,200,"creator_con");
+				if(getContact.get("code") == 3000)
+				{
+					data = getContact.get("data");
+					accID1 = data.getJson("ID");
+					dataMap.put("Customer_Name",ifnull(accID1,null));
+				}
+			}
+		}
+	}
+	/*********************************************Get Subform Data ****************************************/
+	Ordered_Items = DispatchDetails.getJson("Line_Items");
+	if(Ordered_Items.isEmpty() == false)
+	{
+		proList = List();
+		for each  orderItem in Ordered_Items
+		{
+			proMap = Map();
+			productId = orderItem.get("Product_Name").get("id");
+			prodData = zoho.crm.getRecordById("Products",productId);
+			getCreatorId = prodData.getJSON("Creator_record_Id");
+			if(getCreatorId != null)
+			{
+				proMap.put("Product_Name",getCreatorId.toNumber());
+			}
+			else
+			{
+				getproData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","(CRM_SO_ID == \"" + productId.toString() + "\")",0,200,"creator_con");
+				if(getproData.get("code") == 3000)
+				{
+					proMap.put("Product_Name",getproData.get("data").getJson("ID"));
+				}
+			}
+			proMap.put("Product_Code",orderItem.getJSON("Product_Code"));
+			proMap.put("Quantity",orderItem.getJSON("Quantity"));
+			proMap.put("Price",orderItem.getJSON("Price"));
+			proMap.put("Total",orderItem.getJSON("Total"));
+			proList.add(proMap);
+		}
+		dataMap.put("Line_Items",proList);
+	}
+	gstvalue = (ifnull(DispatchDetails.getJson("Sub_Total"),0) * ifnull(DispatchDetails.getJson("GST"),0)) / 100;
+	igstvalue = (ifnull(DispatchDetails.getJson("Sub_Total"),0) * ifnull(DispatchDetails.getJson("IGST"),0)) / 100;
+	dataMap.put("Sub_Total1",ifnull(DispatchDetails.getJson("Sub_Total"),""));
+	dataMap.put("GST",ifnull(DispatchDetails.getJson("GST"),0));
+	dataMap.put("IGST",ifnull(DispatchDetails.getJson("IGST"),0));
+	dataMap.put("GST_Val",gstvalue);
+	dataMap.put("IGST_Val",igstvalue);
+	dataMap.put("Tax_Amount",ifnull(DispatchDetails.getJson("Tax_Amount"),0));
+	dataMap.put("Grand_Total",ifnull(DispatchDetails.getJson("Grand_Total"),0));
+	info dataMap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(creatorRecordID != null)
+	{
+		getDispatchData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customer_Dispatches",creatorRecordID.toNumber(),"creator_con");
+	}
+	else
+	{
+		getDispatchData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customer_Dispatches","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+	}
+	othermap = Map();
+	if(getDispatchData.get("code") == 3000)
+	{
+		info "Update";
+		creatorRecordID = getDispatchData.get("data").getJSON("ID");
+		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customer_Dispatches",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",Updateprod);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		CreateDispatchData = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Customer_Dispatch",dataMap,othermap,"creator_con");
+		info CreateDispatchData;
+		syncc.put("Function_Response",CreateDispatchData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateDispatchData.get("code") == 3000)
+		{
+			updateCRM = Map();
+			creatorRecordID = CreateDispatchData.get("data").get("ID");
+			updateCRM.put("Creator_rec_id",CreateDispatchData.get("data").get("ID"));
+			updatecreatorID = zoho.crm.updateRecord("Dispatch_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

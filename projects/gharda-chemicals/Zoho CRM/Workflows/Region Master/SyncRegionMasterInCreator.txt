@@ -1,0 +1,63 @@
+void automation.SyncRegionMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Region_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Region Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncRegionMasterInCreator");
+	//Function Name
+	region = ifnull(data.getJSON("Name"),"");
+	creatorRecordID = data.get("Creator_record_Id");
+	dataMap = Map();
+	dataMap.put("CRM_Region_ID",id);
+	dataMap.put("Region_Name",ifnull(data.getJSON("Name"),""));
+	othermap = Map();
+	/*************************************************Create/Update Record in Creator*********************************/
+	// 	getRegion = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters","Region_Name == \"" + region + "\"",0,200,"creator_con");
+	// 		 if(getRegion.get("code") == 3000)
+	// 	{
+	// 		regionId = data.getJson("ID");
+	// 		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters",regionId.toLong(),dataMap,othermap,"creator_con");
+	// 	}
+	if(creatorRecordID != null)
+	{
+		getRegionData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters",creatorRecordID,"creator_con");
+		if(getRegionData.isNull() == false)
+		{
+			Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",Updateprod);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+		}
+	}
+	else
+	{
+		CreateRegionMaster = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Region_Master",dataMap,othermap,"creator_con");
+		info CreateRegionMaster;
+		syncc.put("Function_Response",CreateRegionMaster);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger
+		if(CreateRegionMaster.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",CreateRegionMaster.get("data").get("ID"));
+			creatorRecordID = CreateRegionMaster.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Region_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

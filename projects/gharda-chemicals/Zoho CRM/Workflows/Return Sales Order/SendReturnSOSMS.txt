@@ -1,0 +1,61 @@
+void automation.SendReturnSOSMS(Int returnID)
+{
+sampleData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Return_Sales_Order/" + returnID
+	type :GET
+	connection:"zohocrm"
+];
+getsampleDetails = sampleData.get("data");
+if(getsampleDetails.isEmpty() == false)
+{
+	ownerEmail = getsampleDetails.getJson("Owner").get("email");
+	searchCriteria = "(Email:equals:" + ownerEmail + ")";
+	ownrPho = "";
+	getemployee = zoho.crm.searchRecords("Employee_Master",searchCriteria);
+	if(getemployee != null && getemployee.size() > 0)
+	{
+		ownrPhone = getemployee.getJson("Mobile_No");
+		if(ownrPhone.isEmpty() == false)
+		{
+			ownrPho = right(ownrPhone,10);
+		}
+	}
+	Return_No = getsampleDetails.getJson("Return_No");
+	Status = getsampleDetails.getJson("Status");
+	Remarks = getsampleDetails.getJson("Remarks");
+	distID = getsampleDetails.getJson("Distributor_Name").get("id");
+	distName = getsampleDetails.getJson("Distributor_Name").get("name");
+	accountName = "";
+	acctPhone = "";
+	if(distID != null)
+	{
+		getdistData = zoho.crm.getRecordById("Accounts",distID);
+		if(getdistData.isEmpty() == false)
+		{
+			contactnumber = getdistData.get("Contact_Number");
+			if(contactnumber.isEmpty() == false)
+			{
+				acctPhone = right(contactnumber,10);
+			}
+		}
+	}
+	Payload = {"template_id":"69d78c885ee8a54a2601d822","short_url":"0","short_url_expiry":"","realTimeResponse":"1","recipients":{{"mobiles":"91" + ownrPho,"Distributor_Name":ifnull(distName,""),"Return_Request_ID":ifnull(Return_No,""),"Status":ifnull(Status,""),"Remarks":ifnull(Remarks,"")},{"mobiles":"91" + acctPhone,"Distributor_Name":ifnull(distName,""),"Return_Request_ID":ifnull(Return_No,""),"Status":ifnull(Status,""),"Remarks":ifnull(Remarks,"")}}};
+	info Payload;
+	header = Map();
+	header.put("Accept","application/json");
+	header.put("authkey","506742AeM4FBCH69d505a4P1");
+	header.put("Content-Type","application/json");
+	if(ownrPho.isEmpty() == false)
+	{
+		sendSMS = invokeurl
+		[
+			url :"https://control.msg91.com/api/v5/flow"
+			type :POST
+			parameters:Payload.toString()
+			headers:header
+		];
+		info sendSMS;
+	}
+}
+}

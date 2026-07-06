@@ -1,0 +1,140 @@
+void automation.syncCreditNotesInCretor(Int id)
+{
+// 	CreditData = invokeurl
+// [
+// 	url :"https://www.zohoapis.in/crm/v8/Credit_Note/" + id
+// 	type :GET
+// 	connection:"zohocrm"
+// ];
+// creditDetails = CreditData.get("data");
+// info creditDetails;
+// if(creditDetails.isEmpty() == false)
+// {
+// 	dataMap = Map();
+// 	creatorRecordID = creditDetails.getJSON("Creator_rec_id");
+// 	/*********************************************Map Data *****************************************************************/
+// 	dataMap.put("zoho_crm_id",ifnull(id.toString(),""));
+// 	dataMap.put("Remarks",ifnull(creditDetails.getJson("Remarks"),""));
+// 	dataMap.put("Dispatch_Status",ifnull(creditDetails.getJson("Dispatch_Status"),""));
+// 	dispatchDate = "";
+// 	if(creditDetails.getJSON("Dispatch_Date") != null)
+// 	{
+// 		dispatchDate = creditDetails.getJSON("Dispatch_Date").toString("dd-MMM-yyyy");
+// 	}
+// 	dataMap.put("Dispatch_Date",dispatchDate);
+// 	deliveryDate = "";
+// 	if(creditDetails.getJSON("Delivery_Date") != null)
+// 	{
+// 		deliveryDate = creditDetails.getJSON("Delivery_Date").toString("dd-MMM-yyyy");
+// 	}
+// 	dataMap.put("Delivery_Date",deliveryDate);
+// 	/*********************************************Billing Address***************************************************************/
+// 	dataMap.put("Billing_Street",ifnull(creditDetails.getJson("Billing_Street"),""));
+// 	dataMap.put("Billing_City","+91" + ifnull(creditDetails.getJson("Billing_City"),""));
+// 	dataMap.put("Billing_State",ifnull(creditDetails.getJson("Billing_State"),""));
+// 	dataMap.put("Billing_Code",ifnull(creditDetails.getJson("Billing_Code"),""));
+// 	dataMap.put("Billing_Country",ifnull(creditDetails.getJson("Billing_Country"),""));
+// 	/*********************************************Shipping Address***************************************************************/
+// 	dataMap.put("Shipping_Street",ifnull(creditDetails.getJson("Shipping_Street"),""));
+// 	dataMap.put("Shipping_City","+91" + ifnull(creditDetails.getJson("Shipping_City"),""));
+// 	dataMap.put("Shipping_State",ifnull(creditDetails.getJson("Shipping_State"),""));
+// 	dataMap.put("Shipping_Code",ifnull(creditDetails.getJson("Shipping_Code"),""));
+// 	dataMap.put("Shipping_Country",ifnull(creditDetails.getJson("Shipping_Country"),""));
+// 	/*********************************************Get Distributor *****************************************************************/
+// 	accid = null;
+// 	accountName = creditDetails.getJson("Customer_Name");
+// 	if(accountName.isEmpty() == false)
+// 	{
+// 		accid = accountName.get("id");
+// 		getContact = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customers","(zoho_crm_id == \"" + accid.toString() + "\")",1,200,"creator_con");
+// 		if(getContact.get("code") == 3000)
+// 		{
+// 			data = getContact.get("data");
+// 			accID1 = data.getJson("ID");
+// 			dataMap.put("Customer_Name",ifnull(accID1,null));
+// 		}
+// 		else
+// 		{
+// 			accountData = zoho.crm.getRecordById("Accounts",accid);
+// 			if(accountData.isEmpty() == false)
+// 			{
+// 				creatorIdd = accountData.getJSON("Creator_record_Id");
+// 				if(creatorIdd != null)
+// 				{
+// 					dataMap.put("Customer_Name",creatorIdd);
+// 				}
+// 			}
+// 		}
+// 	}
+// 	/*********************************************Get Subform Data ****************************************/
+// 	Ordered_Items = creditDetails.getJson("Line_Items");
+// 	if(Ordered_Items.isEmpty() == false)
+// 	{
+// 		proList = List();
+// 		for each  orderItem in Ordered_Items
+// 		{
+// 			proMap = Map();
+// 			productId = orderItem.get("Product_Name").get("id");
+// 			prodData = zoho.crm.getRecordById("Products",productId);
+// 			getCreatorId = prodData.getJSON("Creator_record_Id");
+// 			if(getCreatorId != null)
+// 			{
+// 				proMap.put("Product_Name",getCreatorId.toNumber());
+// 			}
+// 			else
+// 			{
+// 				getproData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","(CRM_SO_ID == \"" + productId.toString() + "\")",0,200,"creator_con");
+// 				if(getproData.get("code") == 3000)
+// 				{
+// 					proMap.put("Product_Name",getproData.get("data").getJson("ID"));
+// 				}
+// 			}
+// 			proMap.put("Product_Code",orderItem.getJSON("Product_Code"));
+// 			proMap.put("Quantity",orderItem.getJSON("Quantity"));
+// 			proMap.put("Price",orderItem.getJSON("Price"));
+// 			proMap.put("Total",orderItem.getJSON("Total"));
+// 			proList.add(proMap);
+// 		}
+// 		dataMap.put("Line_Items",proList);
+// 	}
+// 	gstvalue = (ifnull(creditDetails.getJson("Sub_Total"),0) * ifnull(creditDetails.getJson("GST"),0)) / 100;
+// 	igstvalue = (ifnull(creditDetails.getJson("Sub_Total"),0) * ifnull(creditDetails.getJson("IGST"),0)) / 100;
+// 	dataMap.put("Sub_Total1",ifnull(creditDetails.getJson("Sub_Total"),""));
+// 	dataMap.put("GST",ifnull(creditDetails.getJson("GST"),0));
+// 	dataMap.put("IGST",ifnull(creditDetails.getJson("IGST"),0));
+// 	dataMap.put("GST_Val",gstvalue);
+// 	dataMap.put("IGST_Val",igstvalue);
+// 	dataMap.put("Tax_Amount",ifnull(creditDetails.getJson("Tax_Amount"),0));
+// 	dataMap.put("Grand_Total",ifnull(creditDetails.getJson("Grand_Total"),0));
+// 	info dataMap;
+// 	othermap = Map();
+// 	/*********************************************Create/Update Record in Creator*********************/
+// 	if(creatorRecordID != null)
+// 	{
+// 		getDispatchData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customer_Dispatches",creatorRecordID.toNumber(),"creator_con");
+// 	}
+// 	else
+// 	{
+// 		getDispatchData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customer_Dispatches","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+// 	}
+// 	othermap = Map();
+// 	if(getDispatchData.get("code") == 3000)
+// 	{
+// 		info "Update";
+// 		creatorRecordID = getDispatchData.get("data").getJSON("ID");
+// 		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customer_Dispatches",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+// 	}
+// 	else
+// 	{
+// 		CreateDispatchData = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Customer_Dispatch",dataMap,othermap,"creator_con");
+// 		info CreateDispatchData;
+// 		if(CreateDispatchData.get("code") == 3000)
+// 		{
+// 			updateCRM = Map();
+// 			creatorRecordID = CreateDispatchData.get("data").get("ID");
+// 			updateCRM.put("Creator_rec_id",CreateDispatchData.get("data").get("ID"));
+// 			updatecreatorID = zoho.crm.updateRecord("Dispatch_Master",id,updateCRM);
+// 		}
+// 	}
+// }
+}

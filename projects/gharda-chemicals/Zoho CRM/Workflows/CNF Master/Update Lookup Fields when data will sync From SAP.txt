@@ -1,0 +1,88 @@
+void automation.UpdateLookupFieldsInCNF(Int id)
+{
+datamap = Map();
+data = zoho.crm.getRecordById("CF_Master",id);
+if(data.isEmpty() == false)
+{
+	getTerritory = data.getJSON("Territory_Name1");
+	getRegion = data.getJSON("Ragion");
+	getMarket = data.getJSON("Market_Name");
+	getTaluka = data.getJSON("Taluka_Name1");
+	getZone = data.getJSON("Zone_1");
+	if(getTerritory != null && getTerritory != "")
+	{
+		searchCriteria = "(Name:equals:" + getTerritory + ")";
+		searchTerritory = zoho.crm.searchRecords("Sub_Territory",searchCriteria);
+		if(searchTerritory != null && searchTerritory.size() > 0)
+		{
+			terrId = searchTerritory.get(0).get("id");
+			info terrId;
+			if(terrId != null)
+			{
+				datamap.put("Territory_Name",terrId.toLong());
+			}
+		}
+	}
+	if(getRegion != null && getRegion != "")
+	{
+		searchCriteria1 = "(Name:equals:" + getRegion + ")";
+		searchRegion = zoho.crm.searchRecords("Region_Master",searchCriteria1);
+		if(searchRegion != null && searchRegion.size() > 0)
+		{
+			RId = searchRegion.get(0).get("id");
+			info RId;
+			if(RId != null)
+			{
+				datamap.put("Region",RId.toLong());
+			}
+		}
+	}
+	if(getMarket != null && getMarket != "")
+	{
+		searchCriteria2 = "(Name:equals:" + getMarket + ")";
+		searchMarket = zoho.crm.searchRecords("Market_Master",searchCriteria2);
+		if(searchMarket != null && searchMarket.size() > 0)
+		{
+			MId = searchMarket.get(0).get("id");
+			info MId;
+			if(MId != null)
+			{
+				datamap.put("Market_Name1",MId.toLong());
+			}
+		}
+	}
+	if(getTaluka != null && getTaluka != "")
+	{
+		searchCriteria4 = "(Name:equals:" + getTaluka + ")";
+		searchTaluka = zoho.crm.searchRecords("Taluka_Master",searchCriteria4);
+		if(searchTaluka != null && searchTaluka.size() > 0)
+		{
+			TalukaId = searchTaluka.get(0).get("id");
+			info TalukaId;
+			if(TalukaId != null)
+			{
+				datamap.put("Taluka_Name",TalukaId.toLong());
+			}
+		}
+	}
+	if(getZone != null && getZone != "")
+	{
+		searchCriteria5 = "(Name:equals:" + getZone + ")";
+		searchZOne = zoho.crm.searchRecords("Zone_Master",searchCriteria5);
+		if(searchZOne != null && searchZOne.size() > 0)
+		{
+			ZId = searchZOne.get(0).get("id");
+			info ZId;
+			if(ZId != null)
+			{
+				datamap.put("Zone",ZId.toLong());
+			}
+		}
+	}
+	if(datamap.isEmpty() == false)
+	{
+		updateLookupData = zoho.crm.updateRecord("CF_Master",id,datamap);
+		info updateLookupData;
+	}
+}
+}

@@ -1,0 +1,83 @@
+void automation.createmeeting(Int meetId)
+{
+// try 
+// {
+meetings = zoho.crm.getRecordById("Events",meetId);
+title = meetings.get("Event_Title");
+location = meetings.get("Venue");
+fromdate = meetings.get("Start_DateTime");
+todate = meetings.get("End_DateTime");
+fromd = fromdate.toTime("yyyy-MM-dd'T'HH:mm:ss");
+tod = todate.toTime("yyyy-MM-dd'T'HH:mm:ss");
+hostby = ifnull(meetings.get("Owner").get("name"),"");
+description = meetings.get("Description");
+related = meetings.get("What_Id");
+liquidation_id = related.get("id");
+rec = zoho.crm.getRecordById("Liquidation_Agent_Master",liquidation_id);
+cretorrecordID = rec.get("Creator_record_Id");
+scmodule = meetings.get("$se_module");
+if(scmodule == "Liquidation_Agent_Master")
+{
+	if(related != null)
+	{
+		searchMap = Map();
+		//1000823000000698001
+		createliqui = Map();
+		ownerid = toString(meetings.get("Owner").get("id"));
+		getUsers = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Users","UserID == \"" + ownerid + "\"",0,200,"creator_con");
+		if(getUsers.get("code") == 3000)
+		{
+			data = getUsers.get("data");
+			SOID = data.getJson("ID");
+			createliqui.put("Sales_Officer",SOID);
+		}
+		createliqui.put("Liquidation_Agent_Name",cretorrecordID);
+		createliqui.put("Liquidation_Agent_Email",cretorrecordID);
+		createliqui.put("Title",title);
+		createliqui.put("Location",location);
+		createliqui.put("From",fromd);
+		createliqui.put("CRMID",meetId.toString());
+		createliqui.put("To",tod);
+		createliqui.put("Host_By",cretorrecordID);
+		createliqui.put("Description",description);
+		createliqui.put("Meeting_Status","Open");
+		createliqui.put("Meeting_Create_from_CRM",true);
+		othermap = Map();
+		creatorResponse = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Meeting",createliqui,othermap,"creator_con");
+		info creatorResponse;
+		/*******************************************************Generate Logs***************************************************/
+		syncc = Map();
+		modulename = "Meetings";
+		syncc.put("Module_Name",modulename);
+		syncc.put("Syncing_To","Creator");
+		syncc.put("Syncing_From","Crm");
+		syncc.put("Crm_Record_Id",meetId.toString());
+		syncc.put("Name","createmeeting");
+		//Function Name
+		syncc.put("Function_Response",creatorResponse);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger 
+		info zoho.crm.createRecord("Log_Master",syncc);
+	}
+}
+// }
+// catch (e)
+// {
+// 	info e;
+// 	/*******************************************************Generate Logs***************************************************/
+// 	syncc = Map();
+// 	modulename = "Meetings";
+// 	syncc.put("Module_Name",modulename);
+// 	syncc.put("Syncing_To","Creator");
+// 	syncc.put("Syncing_From","Crm");
+// 	syncc.put("Crm_Record_Id",meetId.toString());
+// 	syncc.put("Name","createmeeting");//Function Name
+// 	syncc.put("Function_Response",e);//Function Response
+// 	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));//Execution Time 
+// 	syncc.put("Trigger_Type","Create");//Trigger 
+// 	info zoho.crm.createRecord("Log_Master",syncc);
+// }
+}

@@ -1,0 +1,84 @@
+void automation.UpdateLocationFieldsOnly()
+{
+params = Map();
+perPage = 200;
+for each  page in {1,2,3,4,5,6,7,8,9,10}
+{
+	crmRecords = zoho.crm.getRecords("Liquidation_Agent_Master",page,perPage,params,"zohocrm");
+	if(crmRecords != null && crmRecords.size() > 0)
+	{
+		for each  rec in crmRecords
+		{
+			recId = rec.get("id");
+			if(recId != null)
+			{
+				try 
+				{
+					details = zoho.crm.getRecordById("Liquidation_Agent_Master",recId);
+					if(details.get("Status") == "Approved")
+					{
+						creatorId = details.get("Creator_record_Id");
+						if(creatorId != null && creatorId != "")
+						{
+							updateMap = Map();
+							// State
+							updateMap.put("State",ifnull(details.get("State"),""));
+							// Region
+							regionObj = details.get("Region");
+							if(regionObj != null)
+							{
+								updateMap.put("Region",regionObj.get("name"));
+							}
+							// Zone
+							zoneObj = details.get("Zone_Name");
+							if(zoneObj != null)
+							{
+								updateMap.put("Zone_Name",zoneObj.get("name"));
+							}
+							// Territory
+							territoryObj = details.get("Territory_Name");
+							if(territoryObj != null)
+							{
+								updateMap.put("Territory_Name",territoryObj.get("name"));
+							}
+							// Sales District
+							districtObj = details.get("Sales_District");
+							if(districtObj != null)
+							{
+								updateMap.put("Sales_District",districtObj.get("name"));
+							}
+							// Taluka
+							talukaObj = details.get("Taluka_Name");
+							if(talukaObj != null)
+							{
+								updateMap.put("Taluka_Name",talukaObj.get("name"));
+							}
+							// Village
+							villageObj = details.get("Village_Name");
+							if(villageObj != null)
+							{
+								updateMap.put("Village_Name",villageObj.get("name"));
+							}
+							// FA Reporting Manager
+							ownerObj = details.get("Owner");
+							if(ownerObj != null)
+							{
+								updateMap.put("Owner",ownerObj.get("name"));
+							}
+							zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent_Master_Report",creatorId,updateMap,Map(),"creator_con");
+						}
+					}
+				}
+				catch (e)
+				{
+					info e;
+				}
+			}
+		}
+	}
+	else
+	{
+		break;
+	}
+}
+}

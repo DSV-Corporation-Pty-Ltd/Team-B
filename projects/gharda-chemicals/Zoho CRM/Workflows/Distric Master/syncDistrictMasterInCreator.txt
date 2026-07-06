@@ -1,0 +1,56 @@
+void automation.syncDistrictsInCreator(Int id)
+{
+data = zoho.crm.getRecordById("District_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "District Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncDistrictMasterInCreator");
+	//Function Name
+	creatorRecordID = data.get("Creator_rec_id");
+	districtName = data.get("Name");
+	dataMap = Map();
+	dataMap.put("District_Name",districtName);
+	dataMap.put("District_Code",data.getJSON("District_Code"));
+	dataMap.put("zoho_crm_id",id.toString());
+	/*********************************************Create/Update Record in Creator*********************/
+	othermap = Map();
+	info "CreatorRecId===>" + creatorRecordID;
+	if(creatorRecordID != null)
+	{
+		UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_District_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		dataMap.put("sync_from_crm",true);
+		CreateDistrict = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","District_Master",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateDistrict);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateDistrict.get("code") == 3000)
+		{
+			info "Create";
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateDistrict.get("data").get("ID").toString());
+			creatorRecordID = CreateDistrict.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("District_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

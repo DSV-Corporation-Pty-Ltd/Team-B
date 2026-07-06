@@ -1,0 +1,71 @@
+void automation.Populate_Lookup_data_in_expense_ledger(Int id)
+{
+expenseRec = zoho.crm.getRecordById("Expense_Ledger",id);
+subformList = expenseRec.get("expense_items");
+updatedSubform = List();
+if(subformList.isEmpty() == false)
+{
+	for each  recc in subformList
+	{
+		rowMap = Map();
+		rowId = recc.get("id");
+		partyId = recc.get("party_id");
+		costCenter = recc.get("cost_center");
+		profitCenter = recc.get("profit_center");
+		// -------------------------
+		// 1 PARTY ID → Employee_Master
+		// -------------------------
+		if(partyId != null && partyId != "")
+		{
+			empSearch = zoho.crm.searchRecords("Employee_Master","(SAP_ID:equals:" + partyId + ")");
+			if(empSearch.size() > 0)
+			{
+				empId = empSearch.get(0).get("id");
+				partyLookup = Map();
+				partyLookup.put("id",empId);
+				rowMap.put("Party_Name",partyLookup);
+			}
+		}
+		// -------------------------
+		// 2 COST CENTER → Plant_Master
+		// -------------------------
+		if(costCenter != null && costCenter != "")
+		{
+			plantSearch = zoho.crm.searchRecords("Plants_Master","((Name_1:equals:" + costCenter + ") or (Name:equals:" + costCenter + "))");
+			if(plantSearch.size() > 0)
+			{
+				plantId = plantSearch.get(0).get("id");
+				costLookup = Map();
+				costLookup.put("id",plantId);
+				rowMap.put("Cost_Center1",costLookup);
+			}
+		}
+		// -------------------------
+		// 3 PROFIT CENTER → Plant_Master
+		// -------------------------
+		if(profitCenter != null && profitCenter != "")
+		{
+			plantSearch2 = zoho.crm.searchRecords("Plants_Master","((Name_1:equals:" + profitCenter + ") or (Name:equals:" + profitCenter + "))");
+			if(plantSearch2.size() > 0)
+			{
+				plantId2 = plantSearch2.get(0).get("id");
+				profitLookup = Map();
+				profitLookup.put("id",plantId2);
+				rowMap.put("Profit_Cemter",profitLookup);
+			}
+		}
+		rowMap.put("id",rowId);
+		updatedSubform.add(rowMap);
+	}
+}
+// -------------------------
+// Update Expense Ledger
+// -------------------------
+if(updatedSubform.size() > 0)
+{
+	updateMap = Map();
+	updateMap.put("expense_items",updatedSubform);
+	resp = zoho.crm.updateRecord("Expense_Ledger",id,updateMap);
+	info resp;
+}
+}

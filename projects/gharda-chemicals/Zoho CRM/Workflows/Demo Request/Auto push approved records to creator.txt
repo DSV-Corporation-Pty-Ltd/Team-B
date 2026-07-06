@@ -1,0 +1,66 @@
+void automation.pushDemoRequestToCreator(String recordId)
+{
+recordDetails = zoho.crm.getRecordById("Demo_Request",recordId.toLong());
+mainData = Map();
+// Demo Request Name
+mainData.put("Demo_Request_Name",recordDetails.get("Name"));
+// Status
+mainData.put("Status",recordDetails.get("Status"));
+// Remarks
+mainData.put("Remarks",recordDetails.get("Remarks"));
+createdByInfo = recordDetails.get("Created_By");
+if(createdByInfo != null)
+{
+	mainData.put("Created_By",createdByInfo.get("name"));
+}
+// Demo Request Owner - now Single Line in Creator, plain text is fine
+ownerInfo = recordDetails.get("Owner");
+if(ownerInfo != null)
+{
+	mainData.put("Demo_Request_Owner",ownerInfo.get("name"));
+}
+// Plant - Lookup field in Creator (linked to Plants Master form)
+plantInfo = recordDetails.get("Plant");
+plantId = "";
+if(plantInfo != null)
+{
+	plantName = plantInfo.get("name");
+	plantSearch = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master_Report","Plant == \"" + plantName + "\"",1,10,"creator_con");
+	if(plantSearch.get("code") == 3000 && plantSearch.get("data").size() > 0)
+	{
+		plantId = plantSearch.get("data").get(0).get("ID");
+	}
+}
+mainData.put("Plant",plantId);
+// Item Detail subform - SKU, Quantity, and Product_Name
+itemList = recordDetails.get("Item_Detail");
+subformRows = List();
+if(itemList != null)
+{
+	for each  item in itemList
+	{
+		row = Map();
+		// Product_Name - Lookup field in Creator (linked to Create Product form)
+		productInfo = item.get("Product_Name");
+		productId = "";
+		if(productInfo != null)
+		{
+			productName = productInfo.get("name");
+			productSearch = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","Product_Name == \"" + productName + "\"",1,10,"creator_con");
+			if(productSearch.get("code") == 3000 && productSearch.get("data").size() > 0)
+			{
+				productId = productSearch.get("data").get(0).get("ID");
+			}
+		}
+		row.put("Product_Name",productId);
+		row.put("SKU",item.get("SKU"));
+		row.put("Quantity",item.get("Quantity"));
+		subformRows.add(row);
+	}
+}
+mainData.put("Item_Detail1",subformRows);
+info mainData;
+otherParams = Map();
+response = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Demo_Request",mainData,otherParams,"creator_con");
+info response;
+}

@@ -1,0 +1,74 @@
+void automation.syncBrandMasterInCreator(Int id)
+{
+BrandData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Brand_Master/" + id
+	type :GET
+	connection:"zohocrm"
+];
+BrandDetails = BrandData.get("data");
+info BrandDetails;
+if(BrandDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Brand Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncBrandMasterInCeator");
+	//Function Name
+	dataMap = Map();
+	creatorRecordID = BrandDetails.getJSON("Creator_rec_id");
+	brandName = BrandDetails.getJSON("Name");
+	Final_Products = BrandDetails.getJSON("Final_Products");
+	dataMap.put("Brand_name",brandName);
+	dataMap.put("Final_Product",Final_Products);
+	dataMap.put("sync_from_crm",BrandDetails.getJSON("sync_to_creator"));
+	dataMap.put("zoho_crm_id",id.toString());
+	info dataMap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(creatorRecordID != null)
+	{
+		getBrandData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Brand_Masters",creatorRecordID.toNumber(),"creator_con");
+	}
+	else
+	{
+		getBrandData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Brand_Masters","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+	}
+	othermap = Map();
+	if(getBrandData.get("code") == 3000)
+	{
+		info "Update";
+		creatorRecordID = getBrandData.get("data").getJSON("ID");
+		UpdateBrand = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Brand_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateBrand);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		CreateBrand = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Brand_Master",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateBrand);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		info CreateBrand;
+		if(CreateBrand.get("code") == 3000)
+		{
+			updateCRM = Map();
+			creatorRecordID = CreateBrand.get("data").get("ID");
+			updateCRM.put("Creator_rec_id",CreateBrand.get("data").get("ID"));
+			updatecreatorID = zoho.crm.updateRecord("Brand_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

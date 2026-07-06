@@ -1,0 +1,133 @@
+void automation.checkValidationsForSalesOrders(Int id)
+{
+mp1 = Map();
+mp = Map();
+data = zoho.crm.getRecordById("Sales_Orders",id);
+grandTotal = data.getJSON("Grand_Total");
+if(grandTotal != null)
+{
+	orderType = data.getJSON("Order_Type");
+	if(orderType != "Cash Advance Order")
+	{
+		seventyPercent = (grandTotal * 70) / 100;
+		info "70% of Grand Total: " + seventyPercent;
+		thirtyPercent = (grandTotal * 30) / 100;
+		info "30% of Grand Total: " + thirtyPercent;
+		distributorid = data.getJSON("Account_Name").getJSON("id");
+		getDistributor = zoho.crm.getRecordById("Accounts",distributorid);
+		//sendSMS code start here 
+		SONO = "";
+		if(data.get("So_No").isEmpty() == false)
+		{
+			SONO = data.get("So_No");
+		}
+		distPhone = "";
+		distName = "";
+		if(getDistributor.isEmpty() == false)
+		{
+			distName = data.getJSON("Account_Name").getJSON("name");
+			disph = getDistributor.get("Phone");
+			if(disph.isEmpty() == false)
+			{
+				distPhone = right(disph,10);
+			}
+		}
+		Payload = {"template_id":"69d74208aa2ca3e0b206f4f3","short_url":"0","short_url_expiry":"","realTimeResponse":"1","recipients":{{"mobiles":"91" + distPhone,"DistributorName":ifnull(distName,""),"OrderID":ifnull(SONO,"")}}};
+		header = Map();
+		header.put("Accept","application/json");
+		header.put("authkey","506742AeM4FBCH69d505a4P1");
+		header.put("Content-Type","application/json");
+		if(distPhone.isEmpty() == false)
+		{
+			sendSMS = invokeurl
+			[
+				url :"https://control.msg91.com/api/v5/flow"
+				type :POST
+				parameters:Payload.toString()
+				headers:header
+			];
+			info sendSMS;
+		}
+		//send sms code end here 
+		getCreditLimit = getDistributor.getJSON("Credit_Limit");
+		advanceDeposit = getDistributor.getJSON("Advance_Deposit");
+		/**************************************************************Condition 1***************************************/
+		if(getCreditLimit < seventyPercent)
+		{
+			info "credit limit is less than 70 percent of grand total. So send the SO for approval";
+			mp.put("Status","Pending For Approval");
+		}
+		accountName = getDistributor.get("Account_Name");
+		// 		criteria = "(Account_Name:equals:" + accountName + ")";
+		// 		response = zoho.crm.searchRecords("Invoices",criteria);
+		// 		if(response.size() > 0)
+		// 		{
+		// 			for each  recc in response
+		// 			{
+		// 				getDueDate = recc.getJSON("Invoice_Date");
+		// 				statuss = recc.getJSON("Status");
+		// 				if(getDueDate != null && (statuss == "Open" || statuss == "Payment Pending" || statuss == "Approved"))
+		// 				{
+		// 					info "Test";
+		// 					invoiceAge = daysBetween(getDueDate,today);
+		// 					info "invoiceAge:" + invoiceAge;
+		// 					/**************************************************************Condition 2**************************************/
+		// 					if(invoiceAge > 90)
+		// 					{
+		// 						info "Send So for Approval";
+		// 						mp.put("Status","Pending For Approval");
+		// 					}
+		// 				}
+		// 			}
+		// 		}
+		/**************************************************************Condition 3***************************************/
+		// 		if(thirtyPercent > advanceDeposit)
+		// 		{
+		// 			info "Send So for Approval";
+		// 			mp.put("Status","Pending For Approval");
+		// 		}
+		// 		if(thirtyPercent > advanceDeposit)
+		// 		{
+		// 			info "Send So for Approval";
+		// 		}
+		mp.put("Status","Pending For Approval");
+		if(mp.isEmpty() == false)
+		{
+			info "Conditions not getting fulfilled so record is sent for approval.";
+			info zoho.crm.updateRecord("Sales_Orders",id,mp,{"trigger":{"workflow","approval"}});
+		}
+		else
+		{
+			/****************************************Update Status in Crm**********************************/
+			mp.put("Status","Pending For Approval");
+			info zoho.crm.updateRecord("Sales_Orders",id,mp,{"trigger":{"workflow","approval"}});
+			info "Both Conditions got fullfilled so record will not sent for approval";
+			/****************************************Update Status in Creator**********************************/
+			// 			othermap = Map();
+			// 			CreatorSOID = data.getJSON("Creator_SO_Id");
+			// 			SAP_No = data.getJSON("SAP_No");
+			// 			if(CreatorSOID.isEmpty() == false && SAP_No.isEmpty() == false)
+			// 			{
+			// 				//info "CreatorSOID"+CreatorSOID;
+			// 				getSOFromCreator = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Order_Management",CreatorSOID.toLong(),"creator_con");
+			// 				info " result" + getSOFromCreator;
+			// 				if(getSOFromCreator.isNull() == false)
+			// 				{
+			// 					info "mppp===>" + mp;
+			// 					UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Order_Management",CreatorSOID.toLong(),mp,othermap,"creator_con");
+			// 					info UpdateDist;
+			// 				}
+			// 			}
+		}
+	}
+	else
+	{
+		mp1.put("Status","Pending For Approval");
+		info zoho.crm.updateRecord("Sales_Orders",id,mp1,{"trigger":{"workflow","approval"}});
+	}
+}
+else
+{
+	info "Grand Total not found.";
+}
+}

@@ -1,0 +1,68 @@
+void automation.syncMarketMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Market_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Market Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncMarketMasterInCreator");
+	//Function Name
+	creatorRecordID = data.get("Creator_rec_id");
+	dataMap = Map();
+	dataMap.put("Market_Name",data.getJSON("Name"));
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(creatorRecordID != null)
+	{
+		UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Markets",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else if(creatorRecordID == null || creatorRecordID == "")
+	{
+		getDatafromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Markets","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+		if(getDatafromCreator.get("code") == 3000)
+		{
+			info "Update";
+			recId = getDatafromCreator.get("data").getJson("ID");
+			UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Markets",recId.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",UpdateData);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+		}
+	}
+	else
+	{
+		dataMap.put("sync_from_crm",true);
+		dataMap.put("zoho_crm_id",id.toString());
+		CreateData = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Market",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateData.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateData.get("data").get("ID").toString());
+			creatorRecordID = CreateData.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Market_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

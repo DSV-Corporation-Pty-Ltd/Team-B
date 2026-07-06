@@ -1,0 +1,59 @@
+void automation.syncPlantMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Plants_Master",id);
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Plant Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncPlantMasterInCreator");
+	creatorRecordID = data.get("Creator_Rec_Id");
+	dataMap = Map();
+	othermap = Map();
+	dataMap.put("Plant",data.getJSON("Name"));
+	dataMap.put("Main_Plant_Name",data.getJSON("Name_1"));
+	dataMap.put("Plant_Description",data.getJSON("Plant_Description"));
+	dataMap.put("ZCRMID",id.toString());
+	if(creatorRecordID.isEmpty() == false)
+	{
+		Idd = creatorRecordID.toLong();
+		getPlantData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master_Report",Idd,"creator_con");
+		if(getPlantData.get("code") == 3000)
+		{
+			info getPlantData;
+			Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master_Report",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+			info Updateprod;
+			syncc.put("Function_Response",Updateprod);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+		}
+	}
+	else
+	{
+		info "Testinggg";
+		CreatePlantMaster = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master",dataMap,othermap,"creator_con");
+		info CreatePlantMaster;
+		syncc.put("Function_Response",CreatePlantMaster);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreatePlantMaster.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_Rec_Id",CreatePlantMaster.get("data").get("ID"));
+			creatorRecordID = CreatePlantMaster.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Plants_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

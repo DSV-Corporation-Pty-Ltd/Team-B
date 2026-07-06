@@ -1,0 +1,55 @@
+void automation.sendSRF_ForApproval(Int id)
+{
+Data = zoho.crm.getRecordById("SRF_Master",id);
+info Data;
+mp = Map();
+getProducts = Data.getJSON("Details_of_Sample");
+if(getProducts.isEmpty() == false)
+{
+	info "Test";
+	qty = 0;
+	for each  recc in getProducts
+	{
+		info "Pigment Sales";
+		qty = qty + recc.getJSON("Quantity");
+		info qty;
+	}
+	if(qty > 5)
+	{
+		mp.put("Status","Pending For Approval");
+		info "Send Record for approval";
+		// 		mp.put("Send_For_Approval",true);
+		// 				mp.put("Send_for_2nd_level_approval",true);
+	}
+	if(!mp.isEmpty())
+	{
+		info zoho.crm.updateRecord("SRF_Master",id,mp,{"trigger":{"workflow","approval"}});
+	}
+	else
+	{
+		mp.put("Status","Approved");
+		info zoho.crm.updateRecord("SRF_Master",id,mp,{"trigger":{"workflow","approval"}});
+	}
+}
+if(Data.getJSON("Free_Sample_Line_Items").isEmpty() == false)
+{
+	netqty = 0;
+	totalCost = 0;
+	for each  recordd in Data.getJSON("Free_Sample_Line_Items")
+	{
+		totalCost = totalCost + ifnull(recordd.getJSON("Total_Cost"),0);
+		netqty = netqty + ifnull(recordd.getJSON("Qty"),0);
+	}
+	if(netqty > 5 || totalCost >= 500000)
+	{
+		mp.put("Send_For_Approval",true);
+		mp.put("Status","Pending For Approval");
+		info zoho.crm.updateRecord("SRF_Master",id,mp,{"trigger":{"workflow","approval"}});
+	}
+	else
+	{
+		mp.put("Status","Approved");
+		info zoho.crm.updateRecord("SRF_Master",id,mp,{"trigger":{"workflow","approval"}});
+	}
+}
+}

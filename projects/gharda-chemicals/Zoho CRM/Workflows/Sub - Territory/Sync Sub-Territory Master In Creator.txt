@@ -1,0 +1,147 @@
+void automation.SyncTerritoryMasterInCreator1(Int id)
+{
+data = zoho.crm.getRecordById("Sub_Territory",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Sub-Territory";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncTerritoryMasterInCreator");
+	//Function Name
+	creatorRecordID = data.get("Creator_rec_id");
+	territoryName = data.get("Name");
+	dataMap = Map();
+	/********************************************************** Map Plant Master****************************/
+	if(data.getJSON("Delivering_Main_Plant") != null)
+	{
+		PlantId = data.getJSON("Delivering_Main_Plant").getJSON("id");
+		if(PlantId != null)
+		{
+			getRData = zoho.crm.getRecordById("Plants_Master",PlantId);
+			if(getRData.isEmpty() == false)
+			{
+				PId = getRData.getJSON("Creator_Rec_Id");
+				if(PId != null && PId != "")
+				{
+					info "TEst1-->" + PId;
+					dataMap.put("Delivering_Main_Plant",PId.toLong());
+				}
+				else
+				{
+					plant = ifnull(data.getJSON("Delivering_Main_Plant").getJSON("name"),"");
+					getPlant = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master_Report","Plant == \"" + plant + "\"",0,200,"creator_con");
+					if(getPlant.get("code") == 3000)
+					{
+						info "TEst2222-->" + plant;
+						data = getPlant.get("data");
+						plantId = data.getJson("ID");
+						dataMap.put("Delivering_Main_Plant",plantId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Region******************************************************/
+	region = data.getJSON("Region");
+	if(region != null)
+	{
+		RegionId = region.getJSON("id");
+		if(RegionId != null)
+		{
+			getRData = zoho.crm.getRecordById("Region_Master",RegionId);
+			if(getRData.isEmpty() == false)
+			{
+				RId = getRData.getJSON("Creator_record_Id");
+				if(RId != null && RId != "")
+				{
+					dataMap.put("Region_Name",RId);
+				}
+				else
+				{
+					Region = region.get("name");
+					getUsers = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters","Region_Name == \"" + Region + "\"",0,200,"creator_con");
+					if(getUsers.get("code") == 3000)
+					{
+						data = getUsers.get("data");
+						regionId = data.getJson("ID");
+						dataMap.put("Region_Name",regionId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Zone******************************************************/
+	zone = data.getJSON("Zone");
+	if(zone.isEmpty() == false)
+	{
+		zoneId = zone.getJSON("id");
+		if(zoneId != null)
+		{
+			zoneData = zoho.crm.getRecordById("Zone_Master",zoneId);
+			if(zoneData.isEmpty() == false)
+			{
+				zn_Id = zoneData.getJSON("Creator_rec_id");
+				if(zn_Id != null && zn_Id != "")
+				{
+					dataMap.put("Zone",zn_Id);
+				}
+				else
+				{
+					zone = zone.getJSON("name");
+					get_zone = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Zones","Zone == \"" + zone + "\"",0,200,"creator_con");
+					if(get_zone.get("code") == 3000)
+					{
+						data = get_zone.get("data");
+						zId = data.getJson("ID");
+						dataMap.put("Zone",zId);
+					}
+				}
+			}
+		}
+	}
+	dataMap.put("Delivering_Main_Plant_Name",data.getJSON("Delivering_Main_Plant_Name"));
+	dataMap.put("Territory_Name",territoryName);
+	//      dataMap.put("sync_from_crm",true);
+	dataMap.put("zoho_crm_id",id.toString());
+	dataMap.put("Distributors",data.getJSON("Distributors"));
+	dataMap.put("Dealers",data.getJSON("Dealers"));
+	dataMap.put("Farmers",data.getJSON("Farmer"));
+	/*********************************************Create/Update Record in Creator*********************/
+	othermap = Map();
+	info "CreatorRecId===>" + creatorRecordID;
+	if(creatorRecordID != null)
+	{
+		UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Territories",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		CreateTerritory = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Territory",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateTerritory);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateTerritory.get("code") == 3000)
+		{
+			info "Create";
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateTerritory.get("data").get("ID").toString());
+			creatorRecordID = CreateTerritory.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Sub_Territory",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

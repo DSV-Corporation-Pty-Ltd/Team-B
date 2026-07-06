@@ -1,0 +1,17 @@
+void automation.UpdateProductNameOnTheBasisOfProductCode(Int id,String productCode)
+{
+if(productCode != null && productCode != "")
+{
+	searchCriteria = "(Product_Code:equals:" + productCode + ")";
+	searchProduct = zoho.crm.searchRecords("Products",searchCriteria);
+	if(searchProduct != null && searchProduct.size() > 0)
+	{
+		datamap = Map();
+		PId = searchProduct.get(0).get("id");
+		info PId;
+		datamap.put("Product_Name",PId.toLong());
+		response = zoho.crm.updateRecord("Price_Master",id,datamap);
+		info response;
+	}
+}
+}

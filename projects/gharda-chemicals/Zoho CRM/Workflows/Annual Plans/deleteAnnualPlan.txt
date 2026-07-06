@@ -1,0 +1,104 @@
+void automation.deleteplan(Int annualPlanId)
+{
+annualPlanRecord = zoho.crm.getRecordById("Annual_Plans",annualPlanId);
+if(annualPlanRecord != null && annualPlanRecord.containKey("id"))
+{
+	distributorId = "";
+	if(annualPlanRecord.get("Distributor") != null)
+	{
+		distributorId = annualPlanRecord.get("Distributor").get("id");
+	}
+	brandId = "";
+	if(annualPlanRecord.get("Brand_Name") != null)
+	{
+		brandId = annualPlanRecord.get("Brand_Name").get("id");
+	}
+	productCategory = ifnull(annualPlanRecord.get("Product_Category"),"");
+	starRating = ifnull(annualPlanRecord.get("Star_Rating"),"");
+	currentYear = zoho.currentdate.getYear();
+	currentMonth = zoho.currentdate.getMonth();
+	if(currentMonth >= 4)
+	{
+		fyStartYear = currentYear;
+		fyEndYear = currentYear + 1;
+	}
+	else
+	{
+		fyStartYear = currentYear - 1;
+		fyEndYear = currentYear;
+	}
+	fyStartText = fyStartYear.toString().subString(2,4);
+	fyEndText = fyEndYear.toString().subString(2,4);
+	currentFY = fyStartText + "-" + fyEndText;
+	if(distributorId != "" && brandId != "" && productCategory != "" && starRating != "")
+	{
+		searchCriteria = "(((((Distributor:equals:" + distributorId + ")and(Financial_Year:equals:" + currentFY + "))and(Brand_Name:equals:" + brandId + "))and(Product_Category:equals:" + productCategory + "))and(Star_Rating:equals:" + starRating + "))";
+		matchingRecords = zoho.crm.searchRecords("Annual_Plans",searchCriteria,1,200);
+		info matchingRecords;
+		if(matchingRecords != null && matchingRecords.size() > 1)
+		{
+			createdTimeList = List();
+			count = 0;
+			for each  rec in matchingRecords
+			{
+				count = count + 1;
+				if(count == 1)
+				{
+				}
+				else
+				{
+					recId = ifnull(rec.get("id"),"").toString();
+					deleteMap = Map();
+					deleteMap.put("module","Annual_Plans");
+					deleteMap.put("id",recId);
+					deleteCRMResponse = zoho.crm.invokeConnector("crm.delete",deleteMap);
+					info "Deleted Old Record ID: " + recId;
+					info deleteCRMResponse;
+				}
+			}
+			// 			// Sort by Created_Time DESC. Latest record will be first.
+			// 			createdTimeList.sort(false);
+			// 			info "Sorted Created Time List DESC:";
+			// 			info createdTimeList;
+			// 			latestRecordId = "";
+			// 			if(createdTimeList.size() > 0)
+			// 			{
+			// 				latestRecordId = createdTimeList.get(0).get("id").toString();
+			// 			}
+			// 			info "Latest Record ID To Keep: " + latestRecordId;
+			// 			if(latestRecordId != "")
+			// 			{
+			// 				for each  sortRec in createdTimeList
+			// 				{
+			// 					deleteRecId = ifnull(sortRec.get("id"),"").toString();
+			// 					if(deleteRecId != "" && deleteRecId != latestRecordId)
+			// 					{
+			// 						deleteMap = Map();
+			// 						deleteMap.put("module","Annual_Plans");
+			// 						deleteMap.put("id",deleteRecId);
+			// 						deleteCRMResponse = zoho.crm.invokeConnector("crm.delete",deleteMap);
+			// 						info "Deleted Old Record ID: " + deleteRecId;
+			// 						info deleteCRMResponse;
+			// 					}
+			// 				}
+			// 			}
+			// 			else
+			// 			{
+			// 				info "Latest record could not be identified. No records deleted.";
+			//}
+		}
+		else
+		{
+			info "No duplicate Annual Plan records found.";
+		}
+	}
+	else
+	{
+		info "Required filter values missing. Distributor, Brand_Name, Product_Category, and Star_Rating are mandatory.";
+	}
+}
+else
+{
+	info "Annual Plan record not found for ID: " + annualPlanId;
+}
+}

@@ -1,0 +1,65 @@
+void automation.push_collection_to_creator(Int recid)
+{
+rcpRecord = zoho.crm.getRecordById("Monthly_RCP",recid);
+distributorSubform = rcpRecord.get("Distributor_Details");
+if(distributorSubform != null && distributorSubform.size() > 0)
+{
+	for each  row in distributorSubform
+	{
+		distributorLookup = row.get("Distributor_Name");
+		crmAccountId = distributorLookup.get("id");
+		collectionAmount = row.get("Collection_Amount");
+		if(crmAccountId == null || crmAccountId == "" || collectionAmount == null)
+		{
+			continue;
+		}
+		creatorSearchUrl = "https://creator.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters";
+		searchParams = Map();
+		searchParams.put("criteria","Account_CRM_record_ID == \"" + crmAccountId + "\"");
+		creatorSearchResponse = invokeurl
+		[
+			url :creatorSearchUrl
+			type :GET
+			parameters:searchParams
+			connection:"creator_con"
+		];
+		creatorRecords = creatorSearchResponse.get("data");
+		if(creatorRecords == null || creatorRecords.size() == 0)
+		{
+			continue;
+		}
+		creatorRecord = creatorRecords.get(0);
+		creatorRecordId = creatorRecord.get("ID");
+		collectionAmountInActual = collectionAmount.toLong() * 100000;
+		updateData = Map();
+		updateData.put("This_Month_Collection",collectionAmountInActual);
+		updatePayload = Map();
+		updatePayload.put("data",updateData);
+		info updatePayload;
+		creatorUpdateUrl = "https://creator.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordId;
+		creatorUpdateResponse = invokeurl
+		[
+			url :creatorUpdateUrl
+			type :PATCH
+			parameters:updatePayload.toString()
+			connection:"creator_con"
+		];
+		updateStatus = creatorUpdateResponse.get("code");
+		if(updateStatus != 3000)
+		{
+			info "Failed to update Creator for CRM Account ID: " + crmAccountId + " | Response: " + creatorUpdateResponse;
+		}
+		else
+		{
+			info "Successfully updated Creator for CRM Account ID: " + crmAccountId + " | Amount: " + collectionAmount;
+		}
+	}
+	checkboxUpdate = Map();
+	checkboxUpdate.put("Pushed_to_Creator",true);
+	updateCRMRecord = zoho.crm.updateRecord("Monthly_RCP",recid,checkboxUpdate);
+}
+else
+{
+	info "No distributor subform rows found for RCP Record ID: " + recid;
+}
+}

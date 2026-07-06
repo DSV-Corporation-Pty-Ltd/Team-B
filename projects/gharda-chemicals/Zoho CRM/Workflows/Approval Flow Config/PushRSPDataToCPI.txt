@@ -1,0 +1,197 @@
+void automation.PostRSPDataToCPI(Int ApprovalConfigID)
+{
+//previousMonthToken = zoho.currentdate.addMonth(-1).toString("MMM");
+currentMonth = zoho.currentdate.toString("MMM");
+submittedByIds = List();
+configRecord = zoho.crm.getRecordById("Approval_Flow_Config",ApprovalConfigID);
+if(configRecord.isEmpty())
+{
+	info "No Approval Config found";
+}
+if(configRecord.get("Status") != "Approve")
+{
+	info "Record not approved";
+}
+submittedBy = configRecord.get("Submitted_By");
+if(submittedBy != null && submittedBy.get("id") != null)
+{
+	submittedByIds.add(submittedBy.get("id"));
+}
+else
+{
+}
+tokenResponse = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v7/functions/testfunc/actions/execute?auth_type=apikey&zapikey=1003.39fc3833f02c1bdc6b94501fbb49565f.9606408102d38e58538a704592709e01"
+	type :POST
+];
+if(tokenResponse.get("code") != "success")
+{
+	info "Token generation failed: " + tokenResponse;
+}
+authToken = tokenResponse.get("details").get("output");
+headermap = Map();
+headermap.put("Authorization","Bearer " + authToken.toString());
+headermap.put("Content-Type","application/json");
+geturl = zoho.crm.getOrgVariable("Sales_Planning_Endpoint");
+months = {"January","February","March","April","May","June","July","August","September","October","November","December"};
+monthNumberMap = Map();
+monthNumberMap.put("January","01");
+monthNumberMap.put("February","02");
+monthNumberMap.put("March","03");
+monthNumberMap.put("April","04");
+monthNumberMap.put("May","05");
+monthNumberMap.put("June","06");
+monthNumberMap.put("July","07");
+monthNumberMap.put("August","08");
+monthNumberMap.put("September","09");
+monthNumberMap.put("October","10");
+monthNumberMap.put("November","11");
+monthNumberMap.put("December","12");
+year = zoho.currentdate.getYear();
+plantMaterialMap = Map();
+for each  ownerId in submittedByIds
+{
+	rspOffset = 0;
+	rspMoreRecords = true;
+	for each  pageNo in {1,2,3,4,5,6,7,8,9,10}
+	{
+		if(rspMoreRecords == true)
+		{
+			rspQueryMap = Map();
+			rspQueryMap.put("select_query","select id, Owner, Month, Pushed from RSP where Owner.id = '" + ownerId + "' and Month = '" + currentMonth + "' limit 200 offset " + rspOffset);
+			rspResponse = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/coql"
+				type :POST
+				parameters:rspQueryMap.toString()
+				connection:"coqlconn"
+			];
+			if(rspResponse.get("status") != "error" && rspResponse.get("data") != null)
+			{
+				for each  rsp in rspResponse.get("data")
+				{
+					pushedVal = rsp.get("Pushed");
+					if(pushedVal == false || isNull(pushedVal))
+					{
+						id = rsp.get("id");
+						getRSPData = zoho.crm.getRecordById("RSP",id);
+						if(getRSPData.isEmpty() == false)
+						{
+							plantname = "";
+							if(getRSPData.get("Owner") != null)
+							{
+								Owneremail = getRSPData.get("Owner").get("email");
+								searchemployee = zoho.crm.searchRecords("Employee_Master","Email:equals:" + Owneremail);
+								if(searchemployee.size() > 0)
+								{
+									mainplant = searchemployee.get(0).get("Main_Plant");
+									if(mainplant != null)
+									{
+										plantname = mainplant.get("name");
+									}
+								}
+							}
+							if(plantname != "")
+							{
+								skuList = getRSPData.get("SKU_List");
+								materialsList = List();
+								if(skuList != null)
+								{
+									for each  skuRec in skuList
+									{
+										if(skuRec.get("Product") != null)
+										{
+											productId = skuRec.get("Product").get("id");
+											productRec = zoho.crm.getRecordById("Products",productId);
+											productCode = productRec.get("Product_Code");
+											forecastList = List();
+											for each  m in months
+											{
+												qty = skuRec.get(m);
+												if(qty != null && qty != "" && qty != "0.00")
+												{
+													forecastMap = Map();
+													forecastMap.put("Month",year + "-" + monthNumberMap.get(m) + "-01");
+													forecastMap.put("Quantity",qty);
+													forecastList.add(forecastMap);
+												}
+											}
+											if(forecastList.size() > 0)
+											{
+												materialMap = Map();
+												materialMap.put("MaterialID",productCode);
+												materialMap.put("Forecast",forecastList);
+												materialsList.add(materialMap);
+											}
+										}
+									}
+								}
+								if(materialsList.size() > 0)
+								{
+									if(plantMaterialMap.containsKey(plantname))
+									{
+										existingMaterials = plantMaterialMap.get(plantname);
+										for each  mat in materialsList
+										{
+											existingMaterials.add(mat);
+										}
+										plantMaterialMap.put(plantname,existingMaterials);
+									}
+									else
+									{
+										plantMaterialMap.put(plantname,materialsList);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			rspInfoMap = rspResponse.get("info");
+			if(rspInfoMap != null)
+			{
+				rspMoreRecords = ifnull(rspInfoMap.get("more_records"),false);
+			}
+			else
+			{
+				rspMoreRecords = false;
+			}
+			rspOffset = rspOffset + 200;
+		}
+	}
+}
+for each  plantKey in plantMaterialMap.keys()
+{
+	quarterlyPlan = Map();
+	quarterlyPlan.put("Plant",plantKey);
+	quarterlyPlan.put("RequirementType","VSFB");
+	quarterlyPlan.put("Version","00");
+	quarterlyPlan.put("Materials",plantMaterialMap.get(plantKey));
+	finalMap = Map();
+	finalMap.put("QuarterlyPlan",quarterlyPlan);
+	info "Final Payload: " + finalMap;
+	CreateSalesplanning = invokeurl
+	[
+		url :geturl
+		type :POST
+		parameters:finalMap.toString()
+		headers:headermap
+	];
+	info "Plant: " + plantKey + " Response: " + CreateSalesplanning;
+	syncc = Map();
+	modulename = "Rolling Sales Plan";
+	syncc.put("Crm_Record_Id",ApprovalConfigID.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","CPI");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("API_Payload",finalMap.toString());
+	syncc.put("API_URL",geturl.toString());
+	syncc.put("Name","PostRSPDataToCPI");
+	syncc.put("Function_Response",CreateSalesplanning);
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	syncc.put("Trigger_Type","Create");
+	syncc.put("Status",CreateSalesplanning.get("Status"));
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

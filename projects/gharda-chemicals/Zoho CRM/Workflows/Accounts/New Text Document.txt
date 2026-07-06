@@ -1,0 +1,832 @@
+void automation.CreateDistributorCPIAPI(Int id)
+{
+// response = invokeurl
+// [
+// 	url :"https://www.zohoapis.in/crm/v7/functions/testfunc/actions/execute?auth_type=apikey&zapikey=1003.39fc3833f02c1bdc6b94501fbb49565f.9606408102d38e58538a704592709e01"
+// 	type :GET
+// ];
+// if(response.get("code") == "success")
+// {
+// 	details = response.get("details");
+// 	authToken = details.get("output");
+// 	headermap = Map();
+// 	headermap.put("Authorization","Bearer " + authToken.toString());
+// 	headermap.put("Content-Type","application/json");
+// 	//distributor creation
+// 	Customermap = Map();
+// 	CNFData = invokeurl
+// 	[
+// 		url :"https://www.zohoapis.in/crm/v8/Accounts/" + id
+// 		type :GET
+// 		connection:"zohocrm"
+// 	];
+// 	getAccount = CNFData.get("data").get(0);
+// 	if(getAccount.isEmpty() == false)
+// 	{
+// 		Sales_Org = "";
+// 		if(getAccount.get("Sales_Org_String").isEmpty() == false)
+// 		{
+// 			Sales_Org = getAccount.get("Sales_Org_String").get("name");
+// 		}
+// 		Distribution_Channel = "";
+// 		if(getAccount.get("Distribution_Channel").isEmpty() == false)
+// 		{
+// 			Distribution_Channel = getAccount.get("Distribution_Channel");
+// 		}
+// 		Division = "";
+// 		if(getAccount.get("Division_String").isEmpty() == false)
+// 		{
+// 			Division = getAccount.get("Division_String").get("name");
+// 		}
+// 		SalesDistrict = "";
+// 		if(getAccount.get("Sales_District_String1").isEmpty() == false)
+// 		{
+// 			SalesDistrict = getAccount.get("Sales_District_String1").get("name");
+// 		}
+// 		SalesOffice = "";
+// 		if(getAccount.get("Sales_Office_String").isEmpty() == false)
+// 		{
+// 			SalesOffice = getAccount.get("Sales_Office_String").get("name");
+// 		}
+// 		DeliveringPlant = "";
+// 		if(getAccount.get("Delivering_Plant_String").isEmpty() == false)
+// 		{
+// 			DeliveringPlant = getAccount.get("Delivering_Plant_String").get("name");
+// 		}
+// 		accountName = ifnull(getAccount.get("Account_Name"),"");
+// 		words = accountName.toList(" ");
+// 		initials = "";
+// 		if(accountName.isEmpty() == false)
+// 		{
+// 			for each  word in words
+// 			{
+// 				if(word.trim() != "")
+// 				{
+// 					initials = initials + word.subString(0,1);
+// 				}
+// 			}
+// 		}
+// 		bpMap = Map();
+// 		bpMap.put("BusinessPartnerGrouping","ZDOM");
+// 		bpMap.put("BusinessPartnerCategory","2");
+// 		bpMap.put("OrganizationBPName1",ifnull(getAccount.get("Account_Name"),""));
+// 		bpMap.put("OrganizationBPName2","");
+// 		bpMap.put("OrganizationBPName3","");
+// 		bpMap.put("OrganizationBPName4","");
+// 		bpMap.put("SearchTerm1",initials);
+// 		bpMap.put("AuthorizationGroup","");
+// 		bpMap.put("LegalForm","");
+// 		bpMap.put("OrganizationFoundationDate",ifnull(getPrefix(getAccount.get("Modified_Time"),"+"),""));
+// 		bpMap.put("OrganizationLiquidationDate","9999-12-31T00:00:00");
+// 		bpMap.put("BusinessPartnerType","0001");
+// 		bpMap.put("BusinessPartnerIsBlocked",false);
+// 		industryList = List();
+// 		industryMap = Map();
+// 		industryMap.put("IndustrySector","1");
+// 		industryMap.put("IndustrySystemType","0001");
+// 		industryMap.put("IsStandardIndustry","X");
+// 		industryList.add(industryMap);
+// 		bpMap.put("to_BuPaIndustry",industryList);
+// 		addressList = List();
+// 		addressMap = Map();
+// 		addressMap.put("Country","IN");
+// 		addressMap.put("HouseNumber","");
+// 		addressMap.put("StreetName",ifnull(getAccount.get("Billing_Street"),""));
+// 		addressMap.put("PostalCode",ifnull(getAccount.get("Billing_Code"),""));
+// 		addressMap.put("CityName",ifnull(getAccount.get("Billing_City"),""));
+// 		addressMap.put("Language","EN");
+// 		// Address Usage
+// 		usageList = List();
+// 		usageMap = Map();
+// 		usageMap.put("AddressUsage","XXDEFAULT");
+// 		usageMap.put("ValidityEndDate","9999-12-31T00:00:00");
+// 		usageList.add(usageMap);
+// 		addressMap.put("to_AddressUsage",usageList);
+// 		// Email
+// 		emailList = List();
+// 		emailMap = Map();
+// 		emailMap.put("EmailAddress",ifnull(getAccount.get("Account_Email"),""));
+// 		emailMap.put("IsDefaultEmailAddress",true);
+// 		emailList.add(emailMap);
+// 		addressMap.put("to_EmailAddress",emailList);
+// 		// Phone
+// 		phoneList = List();
+// 		phoneMap = Map();
+// 		phoneMap.put("PhoneNumber",ifnull(getAccount.get("Phone"),""));
+// 		phoneMap.put("DestinationLocationCountry","IN");
+// 		phoneMap.put("IsDefaultPhoneNumber",true);
+// 		phoneMap.put("PhoneNumberType",null);
+// 		phoneList.add(phoneMap);
+// 		addressMap.put("to_PhoneNumber",phoneList);
+// 		addressList.add(addressMap);
+// 		bpMap.put("to_BusinessPartnerAddress",addressList);
+// 		// ---------------- Roles ----------------
+// 		roleList = List();
+// 		role1 = Map();
+// 		role1.put("BusinessPartnerRole","FLCU01");
+// 		role1.put("ValidFrom",ifnull(getPrefix(getAccount.get("Modified_Time"),"+"),""));
+// 		role1.put("ValidTo","9999-12-31T00:00:00");
+// 		roleList.add(role1);
+// 		role2 = Map();
+// 		role2.put("BusinessPartnerRole","FLCU00");
+// 		role2.put("ValidFrom",ifnull(getPrefix(getAccount.get("Modified_Time"),"+"),""));
+// 		role2.put("ValidTo","9999-12-31T00:00:00");
+// 		roleList.add(role2);
+// 		bpMap.put("to_BusinessPartnerRole",roleList);
+// 		// ---------------- Customer ----------------
+// 		customerMap = Map();
+// 		customerMap.put("PostingIsBlocked",false);
+// 		// Sales Area
+// 		salesAreaList = List();
+// 		salesAreaMap = Map();
+// 		salesAreaMap.put("SalesOrganization",Sales_Org);
+// 		salesAreaMap.put("DistributionChannel",Distribution_Channel);
+// 		salesAreaMap.put("Division",Division);
+// 		salesAreaMap.put("SalesDistrict",SalesDistrict);
+// 		salesAreaMap.put("Currency","INR");
+// 		salesAreaMap.put("CustomerABCClassification","");
+// 		salesAreaMap.put("CustomerAccountAssignmentGroup","04");
+// 		salesAreaMap.put("CustomerGroup","01");
+// 		salesAreaMap.put("SalesOffice",SalesOffice);
+// 		salesAreaMap.put("CustomerPaymentTerms","GG90");
+// 		salesAreaMap.put("CustomerPriceGroup","");
+// 		salesAreaMap.put("CustomerPricingProcedure","C");
+// 		salesAreaMap.put("DeliveryPriority","01");
+// 		salesAreaMap.put("IncotermsClassification","DD");
+// 		salesAreaMap.put("IncotermsLocation1","Door Delivery");
+// 		salesAreaMap.put("ItemOrderProbabilityInPercent","");
+// 		salesAreaMap.put("ShippingCondition","01");
+// 		salesAreaMap.put("SupplyingPlant",DeliveringPlant);
+// 		salesAreaMap.put("CompleteDeliveryIsDefined",false);
+// 		salesAreaMap.put("DeliveryIsBlockedForCustomer","");
+// 		salesAreaMap.put("OrderCombinationIsAllowed",false);
+// 		salesAreaMap.put("OrderIsBlockedForCustomer","");
+// 		salesAreaMap.put("PartialDeliveryIsAllowed","");
+// 		// ---------------- Sales Tax ----------------
+// 		taxList = List();
+// 		// 		taxcategory = getAccount.getJSON("Tax_Category");
+// 		taxcategory = getAccount.getJSON("Tax_Category_String");
+// 		taxnames = List();
+// 		if(taxcategory.isEmpty() == false)
+// 		{
+// 			for each  taxdata in taxcategory
+// 			{
+// 				Tax_Category_1 = taxdata.get("Tax_Category_1");
+// 				Tax_name = Tax_Category_1.get("name");
+// 				taxnames.add(Tax_name);
+// 			}
+// 		}
+// 		taxMap1 = Map();
+// 		taxMap1.put("DepartureCountry","IN");
+// 		taxMap1.put("CustomerTaxCategory","JOIG");
+// 		if(taxnames.contains("JOIG") == true)
+// 		{
+// 			taxMap1.put("CustomerTaxClassification","1");
+// 		}
+// 		else
+// 		{
+// 			taxMap1.put("CustomerTaxClassification","0");
+// 		}
+// 		taxMap2 = Map();
+// 		taxMap2.put("DepartureCountry","IN");
+// 		taxMap2.put("CustomerTaxCategory","JOCG");
+// 		if(taxnames.contains("JOCG") == true)
+// 		{
+// 			taxMap2.put("CustomerTaxClassification","1");
+// 		}
+// 		else
+// 		{
+// 			taxMap2.put("CustomerTaxClassification","0");
+// 		}
+// 		taxMap3 = Map();
+// 		taxMap3.put("DepartureCountry","IN");
+// 		taxMap3.put("CustomerTaxCategory","JOSG");
+// 		if(taxnames.contains("JOSG") == true)
+// 		{
+// 			taxMap3.put("CustomerTaxClassification","1");
+// 		}
+// 		else
+// 		{
+// 			taxMap3.put("CustomerTaxClassification","0");
+// 		}
+// 		taxMap4 = Map();
+// 		taxMap4.put("DepartureCountry","IN");
+// 		taxMap4.put("CustomerTaxCategory","JTX1");
+// 		if(taxnames.contains("JTX1") == true)
+// 		{
+// 			taxMap4.put("CustomerTaxClassification","1");
+// 		}
+// 		else
+// 		{
+// 			taxMap4.put("CustomerTaxClassification","0");
+// 		}
+// 		taxMap5 = Map();
+// 		taxMap5.put("DepartureCountry","IN");
+// 		taxMap5.put("CustomerTaxCategory","JTC1");
+// 		if(taxnames.contains("JTC1") == true)
+// 		{
+// 			taxMap5.put("CustomerTaxClassification","1");
+// 		}
+// 		else
+// 		{
+// 			taxMap5.put("CustomerTaxClassification","0");
+// 		}
+// 		taxList.add(taxMap1);
+// 		taxList.add(taxMap2);
+// 		taxList.add(taxMap3);
+// 		taxList.add(taxMap4);
+// 		taxList.add(taxMap5);
+// 		salesAreaMap.put("to_SalesAreaTax",taxList);
+// 		to_PartnerFunctionList = List();
+// 		map1 = Map();
+// 		map1.put("PartnerCounter","");
+// 		map1.put("PartnerFunction","SP");
+// 		map1.put("BPCustomerNumber","");
+// 		map1.put("CustomerPartnerDescription","");
+// 		map1.put("DefaultPartner",true);
+// 		map2 = Map();
+// 		map2.put("PartnerCounter","");
+// 		map2.put("PartnerFunction","BP");
+// 		map2.put("BPCustomerNumber","");
+// 		map2.put("CustomerPartnerDescription","");
+// 		map2.put("DefaultPartner",false);
+// 		map3 = Map();
+// 		map3.put("PartnerCounter","");
+// 		map3.put("PartnerFunction","PY");
+// 		map3.put("BPCustomerNumber","");
+// 		map3.put("CustomerPartnerDescription","");
+// 		map3.put("DefaultPartner",false);
+// 		map4 = Map();
+// 		map4.put("PartnerCounter","");
+// 		map4.put("PartnerFunction","SH");
+// 		map4.put("BPCustomerNumber","");
+// 		map4.put("CustomerPartnerDescription","");
+// 		map4.put("DefaultPartner",false);
+// 		to_PartnerFunctionList.add(map1);
+// 		to_PartnerFunctionList.add(map2);
+// 		to_PartnerFunctionList.add(map3);
+// 		to_PartnerFunctionList.add(map4);
+// 		salesAreaMap.put("to_PartnerFunction",to_PartnerFunctionList);
+// 		salesAreaList.add(salesAreaMap);
+// 		customerMap.put("to_CustomerSalesArea",salesAreaList);
+// 		companyList = List();
+// 		companyMap = Map();
+// 		companyMap.put("CompanyCode",ifnull(getAccount.get("Company_Code"),""));
+// 		companyMap.put("CustomerSupplierClearingIsUsed",false);
+// 		companyMap.put("IsToBeLocallyProcessed",false);
+// 		companyMap.put("ItemIsToBePaidSeparately",false);
+// 		companyMap.put("PaymentTerms","");
+// 		companyMap.put("PaytAdviceIsSentbyEDI",false);
+// 		companyMap.put("PhysicalInventoryBlockInd",false);
+// 		companyMap.put("ReconciliationAccount","M01001010");
+// 		companyMap.put("RecordPaymentHistoryIndicator",false);
+// 		companyList.add(companyMap);
+// 		customerMap.put("to_CustomerCompany",companyList);
+// 		bpMap.put("to_Customer",customerMap);
+// 		bpTaxList = List();
+// 		tax1 = Map();
+// 		tax1.put("BPTaxType","IN3");
+// 		tax1.put("BPTaxNumber",ifnull(getAccount.get("GSTIN_Number"),""));
+// 		tax1.put("BPTaxLongNumber",ifnull(getAccount.get("GSTIN_Number"),""));
+// 		bpTaxList.add(tax1);
+// 		tax2 = Map();
+// 		tax2.put("BPTaxType","IN5");
+// 		tax2.put("BPTaxNumber",ifnull(getAccount.get("Pan_Card_Number"),""));
+// 		tax2.put("BPTaxLongNumber",ifnull(getAccount.get("Pan_Card_Number"),""));
+// 		bpTaxList.add(tax2);
+// 		tax3 = Map();
+// 		tax3.put("BPTaxType","IN2");
+// 		tax3.put("BPTaxNumber",ifnull(getAccount.get("TAN_Number"),""));
+// 		tax3.put("BPTaxLongNumber",ifnull(getAccount.get("TAN_Number"),""));
+// 		bpTaxList.add(tax3);
+// 		bpMap.put("to_BusinessPartnerTax",bpTaxList);
+// 		info bpMap;
+// 		geturl = zoho.crm.getOrgVariable("Accounts_CPI_URL");
+// 		info geturl;
+// 		CreateDistributor = invokeurl
+// 		[
+// 			url :geturl
+// 			type :POST
+// 			parameters:bpMap.toString()
+// 			headers:headermap
+// 		];
+// 		info CreateDistributor;
+// 		if(CreateDistributor.get("Status") == "Success")
+// 		{
+// 			sapcode = CreateDistributor.get("Customer");
+// 			upmap = Map();
+// 			upmap.put("SAP_ID",sapcode);
+// 			uprec = zoho.crm.updateRecord("Accounts",id,upmap);
+// 			info uprec;
+// 		}
+// 		/*********************************Log master Info*************************************************/
+// 		syncc = Map();
+// 		modulename = "Accounts/Distributor";
+// 		syncc.put("Crm_Record_Id",id.toString());
+// 		syncc.put("Module_Name",modulename);
+// 		syncc.put("Syncing_To","CPI");
+// 		syncc.put("Syncing_From","Crm");
+// 		syncc.put("Name","CreateDistributorCPIAPI");
+// 		syncc.put("Function_Response",CreateDistributor);
+// 		syncc.put("API_Payload",bpMap.toString());
+// 		syncc.put("API_URL",geturl.toString());
+// 		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+// 		syncc.put("Trigger_Type","Create");
+// 		syncc.put("Status",CreateDistributor.get("Status"));
+// 		info zoho.crm.createRecord("Log_Master",syncc);
+// 	}
+// }
+// response = invokeurl
+// [
+// 	url :"https://www.zohoapis.in/crm/v7/functions/testfunc/actions/execute?auth_type=apikey&zapikey=1003.39fc3833f02c1bdc6b94501fbb49565f.9606408102d38e58538a704592709e01"
+// 	type :GET
+// ];
+// info response;
+// if(response.get("code") == "success")
+// {
+// 	details = response.get("details");
+// 	authToken = details.get("output");
+headermap = Map();
+Production_Basic_Token = zoho.crm.getOrgVariable("Production_Basic_Token");
+//headermap.put("Authorization","Bearer " + authToken.toString());
+headermap.put("Authorization","Basic " + Production_Basic_Token);
+headermap.put("Content-Type","application/json");
+//distributor creation
+Customermap = Map();
+CNFData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Accounts/" + id
+	type :GET
+	connection:"zohocrm"
+];
+// 	info CNFData;
+getAccount = CNFData.get("data").get(0);
+SDst = getAccount.get("SDst");
+Transportation_Zone = getAccount.getjson("Transportation_Zone");
+Territoryname = getAccount.getjson("Territory_Name");
+zonename = "";
+if(!isNull(Transportation_Zone))
+{
+	zonename = Transportation_Zone.get("name");
+	if(zonename.length() == 2)
+	{
+		zonename = "00000000" + zonename;
+	}
+	else
+	{
+		zonename = "000000000" + zonename;
+	}
+}
+if(isNull(Transportation_Zone))
+{
+	if(!isNull(Territoryname))
+	{
+		subName = Territoryname.get("name");
+		searchCriteria = "(Sub_Territory:equals:" + subName + ")";
+		transportZoneList = zoho.crm.searchRecords("Transportation_Zone",searchCriteria);
+		if(!isNull(transportZoneList) && transportZoneList.size() > 0)
+		{
+			transportZoneName = transportZoneList.getJson("Name");
+			if(transportZoneName != "")
+			{
+				if(transportZoneName.length() == 2)
+				{
+					zonename = "00000000" + transportZoneName;
+				}
+				else
+				{
+					zonename = "000000000" + transportZoneName;
+				}
+			}
+		}
+	}
+}
+addressstreet1 = "";
+street1 = getAccount.get("Street_1");
+if(street1.len() > 39)
+{
+	addressstreet1 = street1.subString(0,39);
+}
+else
+{
+	addressstreet1 = street1;
+}
+addressstreet2 = "";
+street2 = getAccount.get("Street_2");
+if(!isNull(street2))
+{
+	if(street2.len() > 39)
+	{
+		addressstreet2 = street2.subString(0,39);
+	}
+	else
+	{
+		addressstreet2 = street2;
+	}
+}
+else
+{
+	addressstreet2 = "";
+}
+addressstreet = "";
+street = getAccount.get("Billing_Street");
+if(!isNull(street))
+{
+	if(street.len() > 39)
+	{
+		addressstreet = street.subString(0,39);
+	}
+	else
+	{
+		addressstreet = street;
+	}
+}
+else
+{
+	addressstreet = "";
+}
+Incoterms = getAccount.get("Incoterms");
+Incoterms_Location = getAccount.get("Incoterms_Location");
+Territory_Name = getAccount.get("Territory_Name").get("name");
+Territory_id = getAccount.get("Territory_Name").get("id");
+getterritprydata = zoho.crm.getRecordById("Sub_Territory",Territory_id.toLong());
+saleoffice = getterritprydata.get("Sales_Office");
+if(getAccount.isEmpty() == false)
+{
+	statecode = "";
+	state = getAccount.get("State1");
+	searchstate = zoho.crm.searchRecords("State_Master","Name:equals:" + state);
+	if(searchstate.size() > 0)
+	{
+		statecode = searchstate.get(0).get("State_Code");
+		if(statecode.isEmpty() == false)
+		{
+			if(statecode.length() == 1)
+			{
+				statecode = "0" + statecode;
+			}
+			if(zonename == "")
+			{
+				if(statecode.length() == 2)
+				{
+					zonename = "00000000" + statecode;
+				}
+				else
+				{
+					zonename = "000000000" + statecode;
+				}
+			}
+		}
+	}
+	SDst = getAccount.get("SDst");
+	// Extract codes
+	code1 = SDst.subString(0,3);
+	// Search first district
+	district1 = "";
+	searchRec1 = zoho.crm.searchRecords("District_Master","District_Code:equals:" + code1);
+	if(searchRec1.size() > 0)
+	{
+		district1 = searchRec1.get(0).get("Name");
+	}
+	Ac_Grp = getAccount.get("Ac_Grp");
+	accgrp = Ac_Grp;
+	Sales_Org = "";
+	if(getAccount.get("Sales_Org_String").isEmpty() == false)
+	{
+		Sales_Org = getAccount.get("Sales_Org_String").get("name");
+	}
+	Distribution_Channel = "";
+	if(getAccount.get("Distribution_Channel").isEmpty() == false)
+	{
+		Distribution_Channel = getAccount.get("Distribution_Channel");
+	}
+	Division = "";
+	if(getAccount.get("Division_String").isEmpty() == false)
+	{
+		Division = getAccount.get("Division_String").get("name");
+	}
+	SalesDistrict = "";
+	if(getAccount.get("Sales_District_String1").isEmpty() == false)
+	{
+		SalesDistrict = getAccount.get("Sales_District_String1").get("name");
+	}
+	// 	SalesOffice = "";
+	// 	if(getAccount.get("Sales_Office_String").isEmpty() == false)
+	// 	{
+	// 		SalesOffice = getAccount.get("Sales_Office_String").get("name");
+	// 	}
+	DeliveringPlant = "";
+	if(getAccount.get("Delivering_Plant_String").isEmpty() == false)
+	{
+		DeliveringPlant = getAccount.get("Delivering_Plant_String").get("name");
+	}
+	accountName = ifnull(getAccount.get("Account_Name"),"");
+	initials = accountName.subString(0,10);
+	bpMap = Map();
+	bpMap.put("BusinessPartnerGrouping",accgrp);
+	bpMap.put("BusinessPartnerCategory","2");
+	// 		bpMap.put("BusinessPartnerCategory","1");
+	bpMap.put("OrganizationBPName1",ifnull(getAccount.get("Account_Name"),""));
+	bpMap.put("OrganizationBPName2","");
+	bpMap.put("OrganizationBPName3","");
+	bpMap.put("OrganizationBPName4","");
+	bpMap.put("SearchTerm1",initials);
+	bpMap.put("AuthorizationGroup","");
+	bpMap.put("FormOfAddress","0001");
+	// title
+	bpMap.put("LegalForm","");
+	bpMap.put("OrganizationFoundationDate",ifnull(getPrefix(getAccount.get("Modified_Time"),"+"),""));
+	bpMap.put("OrganizationLiquidationDate","9999-12-31T00:00:00");
+	bpMap.put("BusinessPartnerType","0001");
+	bpMap.put("BusinessPartnerIsBlocked",false);
+	industryList = List();
+	industryMap = Map();
+	industryMap.put("IndustrySector","40");
+	industryMap.put("IndustrySystemType","0001");
+	industryMap.put("IsStandardIndustry","X");
+	industryList.add(industryMap);
+	bpMap.put("to_BuPaIndustry",industryList);
+	addressList = List();
+	addressMap = Map();
+	addressMap.put("Country","IN");
+	// 		addressMap.put("HouseNumber",ifnull(getAccount.get("House_No"),""));
+	// 	addressMap.put("StreetName",ifnull(getAccount.get("Billing_Street"),""));
+	addressMap.put("StreetName",addressstreet);
+	addressMap.put("PostalCode",ifnull(getAccount.get("Billing_Code"),""));
+	addressMap.put("CityName",ifnull(getAccount.get("Billing_City"),""));
+	// 	addressMap.put("AdditionalStreetPrefixName",ifnull(getAccount.get("Street_2"),""));
+	addressMap.put("AdditionalStreetPrefixName",addressstreet2);
+	// street 3
+	// 		District
+	addressMap.put("District",ifnull(getAccount.get("District"),""));
+	// District
+	addressMap.put("Region",statecode);
+	// Region or state
+	// 	addressMap.put("StreetPrefixName",ifnull(getAccount.get("Street_1"),""));
+	addressMap.put("StreetPrefixName",addressstreet1);
+	// street 2
+	addressMap.put("TransportZone",zonename);
+	// TransportZone
+	addressMap.put("Language","EN");
+	// Address Usage
+	usageList = List();
+	usageMap = Map();
+	usageMap.put("AddressUsage","XXDEFAULT");
+	usageMap.put("ValidityEndDate","9999-12-31T00:00:00");
+	usageList.add(usageMap);
+	addressMap.put("to_AddressUsage",usageList);
+	// Email
+	emailList = List();
+	emailMap = Map();
+	emailMap.put("EmailAddress",ifnull(getAccount.get("Account_Email"),""));
+	emailMap.put("IsDefaultEmailAddress",true);
+	emailList.add(emailMap);
+	addressMap.put("to_EmailAddress",emailList);
+	// Phone
+	phoneList = List();
+	phoneMap = Map();
+	phoneMap.put("PhoneNumber",ifnull(getAccount.get("Phone"),""));
+	phoneMap.put("DestinationLocationCountry","IN");
+	phoneMap.put("IsDefaultPhoneNumber",true);
+	phoneMap.put("PhoneNumberType",null);
+	phoneList.add(phoneMap);
+	addressMap.put("to_PhoneNumber",phoneList);
+	addressList.add(addressMap);
+	bpMap.put("to_BusinessPartnerAddress",addressList);
+	// ---------------- Roles ----------------
+	roleList = List();
+	role1 = Map();
+	role1.put("BusinessPartnerRole","FLCU01");
+	role1.put("ValidFrom",ifnull(getPrefix(getAccount.get("Modified_Time"),"+"),""));
+	role1.put("ValidTo","9999-12-31T00:00:00");
+	roleList.add(role1);
+	role2 = Map();
+	role2.put("BusinessPartnerRole","FLCU00");
+	role2.put("ValidFrom",ifnull(getPrefix(getAccount.get("Modified_Time"),"+"),""));
+	role2.put("ValidTo","9999-12-31T00:00:00");
+	roleList.add(role2);
+	bpMap.put("to_BusinessPartnerRole",roleList);
+	// ---------------- Customer ----------------
+	customerMap = Map();
+	customerMap.put("PostingIsBlocked",false);
+	// Sales Area
+	salesAreaList = List();
+	salesAreaMap = Map();
+	salesAreaMap.put("SalesOrganization",Sales_Org);
+	// 		salesAreaMap.put("DistributionChannel",Distribution_Channel);
+	salesAreaMap.put("DistributionChannel","11");
+	// 		salesAreaMap.put("Division",Division);
+	salesAreaMap.put("Division","11");
+	// 		salesAreaMap.put("SalesDistrict",district1);
+	salesAreaMap.put("SalesDistrict",SDst.toString());
+	salesAreaMap.put("Currency","INR");
+	salesAreaMap.put("CustomerABCClassification","");
+	salesAreaMap.put("CustomerAccountAssignmentGroup","04");
+	// 		salesAreaMap.put("CustomerGroup","01");
+	salesAreaMap.put("CustomerGroup","");
+	salesAreaMap.put("SalesOffice",saleoffice);
+	// 		salesAreaMap.put("CustomerPaymentTerms","GG90");
+	salesAreaMap.put("CustomerPaymentTerms","ZC01");
+	salesAreaMap.put("CustomerPriceGroup","");
+	salesAreaMap.put("CustomerPricingProcedure","C");
+	salesAreaMap.put("DeliveryPriority","01");
+	salesAreaMap.put("IncotermsClassification","DD");
+	salesAreaMap.put("IncotermsLocation1","Ex Godown");
+	salesAreaMap.put("ItemOrderProbabilityInPercent","100");
+	salesAreaMap.put("ShippingCondition","01");
+	salesAreaMap.put("SupplyingPlant",DeliveringPlant);
+	salesAreaMap.put("CompleteDeliveryIsDefined",false);
+	salesAreaMap.put("DeliveryIsBlockedForCustomer","");
+	salesAreaMap.put("OrderCombinationIsAllowed",false);
+	salesAreaMap.put("OrderIsBlockedForCustomer","");
+	salesAreaMap.put("PartialDeliveryIsAllowed","");
+	// ---------------- Sales Tax ----------------
+	taxList = List();
+	// 		taxcategory = getAccount.getJSON("Tax_Category");
+	taxcategory = getAccount.getJSON("Tax_Category_String");
+	taxnames = List();
+	if(taxcategory.isEmpty() == false)
+	{
+		for each  taxdata in taxcategory
+		{
+			Tax_Category_1 = taxdata.get("Tax_Category_1");
+			Tax_name = Tax_Category_1.get("name");
+			taxnames.add(Tax_name);
+		}
+	}
+	taxMap1 = Map();
+	taxMap1.put("DepartureCountry","IN");
+	taxMap1.put("CustomerTaxCategory","JOIG");
+	if(taxnames.contains("JOIG") == true)
+	{
+		taxMap1.put("CustomerTaxClassification","1");
+	}
+	else
+	{
+		taxMap1.put("CustomerTaxClassification","1");
+	}
+	taxMap2 = Map();
+	taxMap2.put("DepartureCountry","IN");
+	taxMap2.put("CustomerTaxCategory","JOCG");
+	if(taxnames.contains("JOCG") == true)
+	{
+		taxMap2.put("CustomerTaxClassification","1");
+	}
+	else
+	{
+		taxMap2.put("CustomerTaxClassification","1");
+	}
+	taxMap3 = Map();
+	taxMap3.put("DepartureCountry","IN");
+	taxMap3.put("CustomerTaxCategory","JOSG");
+	if(taxnames.contains("JOSG") == true)
+	{
+		taxMap3.put("CustomerTaxClassification","1");
+	}
+	else
+	{
+		taxMap3.put("CustomerTaxClassification","1");
+	}
+	taxMap4 = Map();
+	taxMap4.put("DepartureCountry","IN");
+	taxMap4.put("CustomerTaxCategory","JTX1");
+	if(taxnames.contains("JTX1") == true)
+	{
+		taxMap4.put("CustomerTaxClassification","1");
+	}
+	else
+	{
+		taxMap4.put("CustomerTaxClassification","1");
+	}
+	taxMap5 = Map();
+	taxMap5.put("DepartureCountry","IN");
+	taxMap5.put("CustomerTaxCategory","JTC1");
+	if(taxnames.contains("JTC1") == true)
+	{
+		taxMap5.put("CustomerTaxClassification","0");
+	}
+	else
+	{
+		taxMap5.put("CustomerTaxClassification","0");
+	}
+	taxList.add(taxMap1);
+	taxList.add(taxMap2);
+	taxList.add(taxMap3);
+	taxList.add(taxMap4);
+	taxList.add(taxMap5);
+	salesAreaMap.put("to_SalesAreaTax",taxList);
+	to_PartnerFunctionList = List();
+	map1 = Map();
+	map1.put("PartnerCounter","");
+	map1.put("PartnerFunction","SP");
+	map1.put("BPCustomerNumber","");
+	map1.put("CustomerPartnerDescription","");
+	map1.put("DefaultPartner",true);
+	map2 = Map();
+	map2.put("PartnerCounter","");
+	map2.put("PartnerFunction","BP");
+	map2.put("BPCustomerNumber","");
+	map2.put("CustomerPartnerDescription","");
+	map2.put("DefaultPartner",false);
+	map3 = Map();
+	map3.put("PartnerCounter","");
+	map3.put("PartnerFunction","PY");
+	map3.put("BPCustomerNumber","");
+	map3.put("CustomerPartnerDescription","");
+	map3.put("DefaultPartner",false);
+	map4 = Map();
+	map4.put("PartnerCounter","");
+	map4.put("PartnerFunction","SH");
+	map4.put("BPCustomerNumber","");
+	map4.put("CustomerPartnerDescription","");
+	map4.put("DefaultPartner",false);
+	to_PartnerFunctionList.add(map1);
+	to_PartnerFunctionList.add(map2);
+	to_PartnerFunctionList.add(map3);
+	to_PartnerFunctionList.add(map4);
+	salesAreaMap.put("to_PartnerFunction",to_PartnerFunctionList);
+	salesAreaList.add(salesAreaMap);
+	customerMap.put("to_CustomerSalesArea",salesAreaList);
+	companyList = List();
+	companyMap = Map();
+	companyMap.put("CompanyCode",ifnull(getAccount.get("Company_Code1"),""));
+	companyMap.put("CustomerSupplierClearingIsUsed",false);
+	companyMap.put("IsToBeLocallyProcessed",false);
+	companyMap.put("ItemIsToBePaidSeparately",false);
+	companyMap.put("PaymentTerms","");
+	companyMap.put("PaytAdviceIsSentbyEDI",false);
+	companyMap.put("PhysicalInventoryBlockInd",false);
+	companyMap.put("ReconciliationAccount","M01001010");
+	companyMap.put("RecordPaymentHistoryIndicator",false);
+	companyList.add(companyMap);
+	customerMap.put("to_CustomerCompany",companyList);
+	bpMap.put("to_Customer",customerMap);
+	bpTaxList = List();
+	tax1 = Map();
+	// GST number
+	tax1.put("BPTaxType","IN3");
+	tax1.put("BPTaxNumber",ifnull(getAccount.get("GSTIN_Number"),""));
+	tax1.put("BPTaxLongNumber",ifnull(getAccount.get("GSTIN_Number"),""));
+	bpTaxList.add(tax1);
+	tax2 = Map();
+	// pan card number
+	tax2.put("BPTaxType","IN5");
+	tax2.put("BPTaxNumber",ifnull(getAccount.get("Pan_Card_Number"),""));
+	tax2.put("BPTaxLongNumber",ifnull(getAccount.get("Pan_Card_Number"),""));
+	bpTaxList.add(tax2);
+	if(!isNull(getAccount.get("Aadhar_Card_Number")))
+	{
+		tax4 = Map();
+		// adhaar number
+		tax4.put("BPTaxType","IN7");
+		tax4.put("BPTaxNumber",ifnull(getAccount.get("Aadhar_Card_Number"),""));
+		tax4.put("BPTaxLongNumber",ifnull(getAccount.get("Aadhar_Card_Number"),""));
+		bpTaxList.add(tax4);
+	}
+	if(!isNull(getAccount.get("TAN_Number")))
+	{
+		tax3 = Map();
+		// TAN number
+		tax3.put("BPTaxType","IN2");
+		tax3.put("BPTaxNumber",ifnull(getAccount.get("TAN_Number"),""));
+		tax3.put("BPTaxLongNumber",ifnull(getAccount.get("TAN_Number"),""));
+		bpTaxList.add(tax3);
+	}
+	bpMap.put("to_BusinessPartnerTax",bpTaxList);
+	info bpMap;
+	geturl = zoho.crm.getOrgVariable("Accounts_CPI_URL");
+	info geturl;
+	CreateDistributor = invokeurl
+	[
+		url :geturl
+		type :POST
+		parameters:bpMap.toString()
+		headers:headermap
+	];
+	info CreateDistributor;
+	if(CreateDistributor.get("Status") == "Success")
+	{
+		sapcode = CreateDistributor.get("Customer");
+		upmap = Map();
+		upmap.put("SAP_ID",sapcode);
+		uprec = zoho.crm.updateRecord("Accounts",id,upmap);
+		info uprec;
+	}
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Accounts/Distributor";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","CPI");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("API_URL",geturl);
+	syncc.put("API_Payload",bpMap.toString());
+	syncc.put("Name","CreateDistributorCPIAPI");
+	syncc.put("Function_Response",CreateDistributor);
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	syncc.put("Trigger_Type","Create");
+	syncc.put("Status",CreateDistributor.get("Status"));
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+//}
+}

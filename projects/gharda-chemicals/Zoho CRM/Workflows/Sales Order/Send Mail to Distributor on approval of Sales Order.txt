@@ -1,0 +1,22 @@
+void automation.SendMailToDistributorOnApprovalOfSalesOrder(Int accID,String SoNo)
+{
+accObj = zoho.crm.getRecordById("Accounts",accID);
+if(accObj != null && accObj.isEmpty() == false)
+{
+	distributorName = ifnull(accObj.get("Account_Name"),"Distributor");
+	distributorEmail = ifnull(accObj.get("Account_Email"),"");
+	if(distributorEmail == "")
+	{
+		return;
+	}
+	mailSubject = "Sales Order Approved - Confirmation";
+	htmlMessage = "<html><body style='font-family:Arial,sans-serif;background-color:#f3f4f6;padding:20px;'><div style='max-width:600px;margin:auto;background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,0.08);'><h2 style='color:#16a34a;text-align:center;margin-top:0;'>Sales Order Approved</h2><p style='font-size:14px;color:#111827;'>Dear <b>" + distributorName + "</b>,</p><p style='font-size:14px;color:#374151;'>We are pleased to inform you that the sales order  <b>" + SoNo + "</b> you submitted has been successfully approved.</p><p style='font-size:14px;color:#065f46;margin:16px 0;'><b>Status:</b> Approved</p></div></body></html>";
+	sendmail
+	[
+		from :zoho.loginuserid
+		to :distributorEmail
+		subject :mailSubject
+		message :htmlMessage
+	]
+}
+}

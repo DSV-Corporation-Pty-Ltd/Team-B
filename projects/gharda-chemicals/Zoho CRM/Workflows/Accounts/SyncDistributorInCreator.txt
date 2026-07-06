@@ -1,0 +1,673 @@
+void automation.SyncDistributorInCreator(Int accountId)
+{
+CNFData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Accounts/" + accountId
+	type :GET
+	connection:"zohocrm"
+];
+accountDetails = CNFData.get("data").get(0);
+if(accountDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	sapid = accountDetails.get("SAP_ID");
+	syncc = Map();
+	modulename = "Accounts";
+	syncc.put("Crm_Record_Id",accountId.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncDistributorInCreator");
+	//Function Name
+	Upload_GSTIN_Certificate = accountDetails.getJSON("Upload_GSTIN_Certificate");
+	Upload_Bank_Cheque = accountDetails.getJSON("Upload_Bank_Cheque");
+	aadharCard = accountDetails.getJSON("Upload_Aadhar_Card_File");
+	panCard = accountDetails.getJSON("Upload_Pan_Card_File");
+	pesticideLisc = accountDetails.getJSON("Pesticide_Liscense");
+	distributorAgreement = accountDetails.getJSON("Distributor_Agreement");
+	bussinessReport = accountDetails.getJSON("Business_Report");
+	creatorRecordID = accountDetails.get("Creator_record_Id");
+	dataMap = Map();
+	dataMap.put("Contact_Name",ifnull(accountDetails.get("Name1"),""));
+	dataMap.put("Distributor_SAP_ID",ifnull(accountDetails.get("SAP_ID"),""));
+	dataMap.put("Distributor_Name",ifnull(accountDetails.get("Account_Name"),""));
+	dataMap.put("Email",ifnull(accountDetails.get("Account_Email"),""));
+	dataMap.put("Distributor_Created_from_CRM",true);
+	dataMap.put("Fertilizer_License_Number",ifnull(accountDetails.get("Fertilizer_License_Number"),""));
+	dataMap.put("Pesticide_License_Number",ifnull(accountDetails.get("Pesticide_License_Number1"),""));
+	dataMap.put("PAN_Number",ifnull(accountDetails.get("Pan_Card_Number"),""));
+	dataMap.put("Status","Active");
+	dataMap.put("GST_Number",ifnull(accountDetails.get("GSTIN_Number"),""));
+	dataMap.put("Annual_Plan_Status",ifnull(accountDetails.get("Annual_Plan_Status"),""));
+	dataMap.put("Account_CRM_record_ID",accountId.toString());
+	dataMap.put("Business_Category",accountDetails.get("Business_Category"));
+	dataMap.put("Designation",accountDetails.get("Title"));
+	dataMap.put("Sales_Org",accountDetails.get("Sales_Org"));
+	dataMap.put("Distribution_Channel",accountDetails.get("Distribution_Channel"));
+	//dataMap.put("Delivering_Plant",accountDetails.get("Delivering_Plant"));
+	dataMap.put("Customer_Group",accountDetails.get("Customer_Group"));
+	dataMap.put("Sales_Office",accountDetails.get("Sales_Office"));
+	dataMap.put("Customer_Group",accountDetails.get("Customer_Group"));
+	dataMap.put("Customer_Code",accountDetails.get("Customer_Code"));
+	if(accountDetails.getJSON("Employee_Name").isNull() == false)
+	{
+		empId = accountDetails.getJSON("Employee_Name").get("id");
+		// Get Employee Master Record
+		empRec = zoho.crm.getRecordById("Employee_Master",empId);
+		userId = null;
+		if(empRec != null)
+		{
+			empEmail = empRec.get("Email");
+			//  First check official Email
+			if(empEmail != null && empEmail != "")
+			{
+				userSearch = zoho.crm.searchRecords("users","email:equals:" + empEmail);
+				info userSearch;
+				if(userSearch.size() > 0)
+				{
+					userId = userSearch.get("users").get(0).get("id");
+				}
+			}
+			//  If user not found then check Personal Email
+			if(userId == null)
+			{
+				personalEmail = empRec.get("Personal_Email");
+				if(personalEmail != null && personalEmail != "")
+				{
+					userSearch = zoho.crm.searchRecords("users","email:equals:" + personalEmail);
+					if(userSearch.size() > 0)
+					{
+						userId = userSearch.get("users").get(0).get("id");
+					}
+				}
+			}
+			//  If user found then map ID
+			if(userId != null)
+			{
+				dataMap.put("Employee_ID",userId.toString());
+			}
+		}
+	}
+	if(accountDetails.get("Phone") != null)
+	{
+		dataMap.put("Contact_Number","+91" + ifnull(accountDetails.get("Phone"),""));
+	}
+	district = accountDetails.getJSON("Sales_District");
+	region = accountDetails.getJSON("Region");
+	info "Region:" + region;
+	territory = accountDetails.getJSON("Territory_Name");
+	info "territory:" + territory;
+	zone = accountDetails.getJSON("Zone");
+	info "Zone: " + zone;
+	tlka = accountDetails.getJSON("Taluka_Name");
+	mkt = accountDetails.getJSON("Market_Name");
+	/********************************************************** Map Plant Master****************************/
+	if(accountDetails.getJSON("Delivering_Plant_String") != null)
+	{
+		PlantId = accountDetails.getJSON("Delivering_Plant_String").getJSON("id");
+		if(PlantId != null)
+		{
+			getRData = zoho.crm.getRecordById("Plants_Master",PlantId);
+			if(getRData.isEmpty() == false)
+			{
+				PId = getRData.getJSON("Creator_Rec_Id");
+				if(PId != null && PId != "")
+				{
+					info "TEst1-->" + PId;
+					dataMap.put("Plant",PId.toLong());
+				}
+				else
+				{
+					plant = ifnull(accountDetails.getJSON("Delivering_Plant_String").getJSON("name"),"");
+					getPlant = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master_Report","Plant == \"" + plant + "\"",0,200,"creator_con");
+					if(getPlant.get("code") == 3000)
+					{
+						info "TEst2222-->" + plant;
+						data = getPlant.get("data");
+						plantId = data.getJson("ID");
+						dataMap.put("Plant",plantId);
+					}
+				}
+			}
+		}
+	}
+	dataMap.put("Plant_1",ifnull(accountDetails.getJSON("Plant_1"),""));
+	dataMap.put("Plant_2",ifnull(accountDetails.getJSON("Plant_2"),""));
+	/********************************************************** Map Tax category and Classification****************************/
+	dataMap.put("Tax_Classification",ifnull(accountDetails.getJSON("Tax_Classification"),""));
+	taxcategory = accountDetails.getJSON("Tax_Category");
+	TaxIdsList = List();
+	if(taxcategory.isEmpty() == false)
+	{
+		for each  taxdata in taxcategory
+		{
+			Tax_Category_1 = taxdata.get("Tax_Category_1");
+			taxCId = Tax_Category_1.get("id");
+			if(taxCId != null)
+			{
+				getTax = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Tax_Categories","Z_Crm_Id == \"" + taxCId.toString() + "\"",0,200,"creator_con");
+				if(getTax.get("code") == 3000)
+				{
+					taxID = getTax.getJSON("data").getJson("ID");
+					TaxIdsList.add(taxID);
+				}
+			}
+		}
+	}
+	if(TaxIdsList.isEmpty() == false)
+	{
+		dataMap.put("Tax_Category",TaxIdsList);
+	}
+	/********************************************************** Map Region******************************************************/
+	if(region != null)
+	{
+		RegionId = region.getJSON("id");
+		if(RegionId != null)
+		{
+			getRData = zoho.crm.getRecordById("Region_Master",RegionId);
+			if(getRData.isEmpty() == false)
+			{
+				RId = getRData.getJSON("Creator_record_Id");
+				if(RId != null && RId != "")
+				{
+					dataMap.put("Region",RId);
+				}
+				else
+				{
+					Region = region.get("name");
+					getUsers = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters","Region_Name == \"" + Region + "\"",0,200,"creator_con");
+					if(getUsers.get("code") == 3000)
+					{
+						data = getUsers.get("data");
+						regionId = data.getJson("ID");
+						dataMap.put("Region",regionId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Region******************************************************/
+	if(district != null)
+	{
+		districtId = district.getJSON("id");
+		if(districtId != null)
+		{
+			getdistrictData = zoho.crm.getRecordById("District_Master",districtId);
+			if(getdistrictData.isEmpty() == false)
+			{
+				DId = getdistrictData.getJSON("Creator_rec_id");
+				if(DId != null && DId != "")
+				{
+					dataMap.put("District",DId);
+				}
+				else
+				{
+					districtName = district.getJSON("name");
+					getdist = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_District_Masters","District_Name == \"" + districtName + "\"",0,200,"creator_con");
+					if(getdist.get("code") == 3000)
+					{
+						data2 = getdist.get("data");
+						districtId = data2.getJson("ID");
+						dataMap.put("District",districtId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Territory******************************************************/
+	if(territory != null)
+	{
+		territoryId = territory.getJSON("id");
+		if(territoryId != null)
+		{
+			getData = zoho.crm.getRecordById("Sub_Territory",territoryId);
+			if(getData.isEmpty() == false)
+			{
+				territoryId = getData.getJSON("Creator_rec_id");
+				if(territoryId != null && territoryId != "")
+				{
+					dataMap.put("Territory",territoryId);
+				}
+				else
+				{
+					territory = territory.get("name");
+					get_territory = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Territories","Territory_Name == \"" + territory + "\"",0,200,"creator_con");
+					if(get_territory.get("code") == 3000)
+					{
+						data = get_territory.get("data");
+						tId = data.getJson("ID");
+						dataMap.put("Territory",tId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Taluka******************************************************/
+	if(tlka.isEmpty() == false)
+	{
+		taluka = tlka.getJSON("name");
+		talukaId = tlka.getJSON("id");
+		if(talukaId != null)
+		{
+			getTalukaData = zoho.crm.getRecordById("Taluka_Master",talukaId);
+			if(getTalukaData.isEmpty() == false)
+			{
+				Taluka_Id = getTalukaData.getJSON("Creator_rec_id");
+				if(Taluka_Id != null && Taluka_Id != "")
+				{
+					dataMap.put("Taluka",Taluka_Id);
+				}
+				else
+				{
+					get_taluka = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Taluka_Report","Taluka_Name == \"" + taluka + "\"",0,200,"creator_con");
+					if(get_taluka.get("code") == 3000)
+					{
+						data = get_taluka.get("data");
+						talukaId = data.getJson("ID");
+						dataMap.put("Taluka",talukaId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Market******************************************************/
+	if(mkt.isEmpty() == false)
+	{
+		marketId = mkt.getJSON("id");
+		if(marketId != null)
+		{
+			getMarketData = zoho.crm.getRecordById("Market_Master",marketId);
+			if(getMarketData.isEmpty() == false)
+			{
+				mrkt_Id = getMarketData.getJSON("Creator_rec_id");
+				if(mrkt_Id != null && mrkt_Id != "")
+				{
+					dataMap.put("Market",mrkt_Id);
+				}
+				else
+				{
+					market = mkt.getJSON("name");
+					get_market = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Markets","Market_Name == \"" + market + "\"",0,200,"creator_con");
+					if(get_market.get("code") == 3000)
+					{
+						data = get_market.get("data");
+						mId = data.getJson("ID");
+						dataMap.put("Market",mId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map Zone******************************************************/
+	if(zone.isEmpty() == false)
+	{
+		zoneId = zone.getJSON("id");
+		if(zoneId != null)
+		{
+			zoneData = zoho.crm.getRecordById("Zone_Master",zoneId);
+			if(zoneData.isEmpty() == false)
+			{
+				zn_Id = zoneData.getJSON("Creator_rec_id");
+				if(zn_Id != null && zn_Id != "")
+				{
+					dataMap.put("Zone",zn_Id);
+				}
+				else
+				{
+					zone = zone.getJSON("name");
+					get_zone = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Zones","Zone == \"" + zone + "\"",0,200,"creator_con");
+					if(get_zone.get("code") == 3000)
+					{
+						data = get_zone.get("data");
+						zId = data.getJson("ID");
+						dataMap.put("Zone",zId);
+					}
+				}
+			}
+		}
+	}
+	/********************************************************** Map other data******************************************************/
+	dataMap.put("Aadhar_Card_Number",ifnull(accountDetails.get("Aadhar_Card_Number"),""));
+	// 	dataMap.put("Credit_Limit",ifnull(accountDetails.get("Credit_Limit").toDecimal(),""));
+	// 	dataMap.put("Advance_Deposit",ifnull(accountDetails.get("Advance_Deposit").toDecimal(),""));
+	if(accountDetails.get("Advance_Deposit") != null && accountDetails.get("Advance_Deposit") != "")
+	{
+		dataMap.put("Advance_Deposit",ifnull(accountDetails.get("Advance_Deposit").toDecimal(),""));
+	}
+	if(accountDetails.get("Credit_Limit") != null && accountDetails.get("Credit_Limit") != "")
+	{
+		dataMap.put("Credit_Limit",ifnull(accountDetails.get("Credit_Limit").toDecimal(),""));
+	}
+	dataMap.put("Billing_Street",ifnull(accountDetails.get("Billing_Street"),""));
+	dataMap.put("Billing_City",ifnull(accountDetails.get("Billing_City"),""));
+	dataMap.put("Billing_State",ifnull(accountDetails.get("Billing_State"),""));
+	dataMap.put("Billing_Country",ifnull(accountDetails.get("Billing_Country"),""));
+	dataMap.put("Billing_Code",ifnull(accountDetails.get("Billing_Code").toString(),""));
+	dataMap.put("Shipping_Street",ifnull(accountDetails.get("Shipping_Street"),""));
+	dataMap.put("Shipping_City",ifnull(accountDetails.get("Shipping_City"),""));
+	dataMap.put("Shipping_State",ifnull(accountDetails.get("Shipping_State"),""));
+	dataMap.put("Shipping_Country",ifnull(accountDetails.get("Shipping_Country"),""));
+	dataMap.put("Shipping_Code",ifnull(accountDetails.get("Shipping_Code").toString(),""));
+	othermap = Map();
+	info dataMap;
+	//Account creation/updation
+	creatorecid = "";
+	get_dist = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters","Distributor_SAP_ID == \"" + sapid + "\"",0,200,"creator_con");
+	if(get_dist.get("code") == 3000)
+	{
+		data = get_dist.get("data");
+		creatorecid = data.getJson("ID");
+		getDistributorData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters",creatorecid,"creator_con");
+	}
+	if(getDistributorData.isNull() == false)
+	{
+		info "Update:   " + getDistributorData;
+		UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters",creatorecid.toLong(),dataMap,othermap,"creator_con");
+		info UpdateDist;
+		syncc.put("Function_Response",UpdateDist);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		updatedistmap = Map();
+		updatedistmap.put("Creator_record_Id",creatorecid);
+		// 		updatedistmap.put("Status","Approved");
+		updatecreatorID = zoho.crm.updateRecord("Accounts",accountId,updatedistmap);
+		//Trigger
+	}
+	else
+	{
+		CreateDist = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Distributor_Master",dataMap,othermap,"creator_con");
+		info CreateDist;
+		syncc.put("Function_Response",CreateDist);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger
+		if(CreateDist.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",CreateDist.get("data").get("ID"));
+			creatorRecordID = CreateDist.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Accounts",accountId,updateCRM);
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",CreateDist.get("data").get("ID"));
+			// 			updateCRM.put("Status","Approved");
+			creatorRecordID = CreateDist.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Accounts",accountId,updateCRM);
+		}
+	}
+	//info zoho.crm.createRecord("Log_Master",syncc);
+	/*********************************************Upload Pan Card*****************************************/
+	// 	if(panCard != null)
+	// 	{
+	// 		fileId = panCard.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Upload_Pan_Card/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/*********************************************Upload Aadhaar card*****************************************/
+	// 	if(aadharCard != null)
+	// 	{
+	// 		fileId = aadharCard.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Upload_Aadhar_Card/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/*********************************************Upload Upload_Bank_Cheque*****************************************/
+	// 	if(Upload_Bank_Cheque != null)
+	// 	{
+	// 		fileId = Upload_Bank_Cheque.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Upload_Bank_Cheque/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/*********************************************Upload Pesticide Liscense *****************************************/
+	// 	if(pesticideLisc != null)
+	// 	{
+	// 		fileId = pesticideLisc.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Pesticide_License/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/*********************************************Upload Business Report *****************************************/
+	// 	if(bussinessReport != null)
+	// 	{
+	// 		fileId = bussinessReport.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Business_Report/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/*********************************************Upload Distributor Agreement*****************************************/
+	// 	if(distributorAgreement != null)
+	// 	{
+	// 		fileId = distributorAgreement.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Distributor_Agreement/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	// 	/********************************************* Upload_GSTIN_Certificate*****************************************/
+	// 	if(Upload_GSTIN_Certificate != null)
+	// 	{
+	// 		fileId = Upload_GSTIN_Certificate.getJSON("File_Id__s");
+	// 		info fileId;
+	// 		downloaded_file = invokeurl
+	// 		[
+	// 			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+	// 			type :GET
+	// 			connection:"zohocrm"
+	// 		];
+	// 		downloaded_file.setParamName("file");
+	// 		if(downloaded_file.isEmpty() == false)
+	// 		{
+	// 			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Distributor_Masters/" + creatorRecordID + "/Upload_GSTIN_Certificate/upload";
+	// 			response = invokeurl
+	// 			[
+	// 				url :upload_url
+	// 				type :POST
+	// 				files:downloaded_file
+	// 				connection:"creator_con"
+	// 			];
+	// 			info response;
+	// 		}
+	// 	}
+	contactemail = accountDetails.get("Email");
+	contactname = accountDetails.get("Name1");
+	conatactnumber = accountDetails.get("Contact_Number");
+	contactmap = Map();
+	contactmap.put("Account_Name",accountId.toLong());
+	contactmap.put("layoutId","1000823000000456083");
+	contactmap.put("Last_Name",ifnull(contactname,""));
+	contactmap.put("Email",ifnull(contactemail,""));
+	contactmap.put("Phone",ifnull(conatactnumber,""));
+	//Contact Creation/updation
+	searchConEmail = zoho.crm.searchRecords("Contacts","Account_Name:equals:" + accountId + "");
+	if(searchConEmail.isEmpty() == false)
+	{
+		for each  ConEmail in searchConEmail
+		{
+			contactId = ConEmail.get("id");
+		}
+		updateContact = zoho.crm.updateRecord("Contacts",contactId,contactmap);
+	}
+	else
+	{
+		createContact = zoho.crm.createRecord("Contacts",contactmap);
+		if(createContact.isEmpty() == false)
+		{
+			contactId = createContact.get("id");
+		}
+	}
+	relatedcontact = zoho.crm.getRelatedRecords("Contacts","Accounts",accountId,1,200);
+	record = list();
+	con = relatedcontact.toJsonList();
+	for each  c in relatedcontact
+	{
+		subformRow = Map();
+		subformRow.put("Contact_Name",ifnull(c.get("Last_Name"),""));
+		subformRow.put("Email",ifnull(c.get("Email"),""));
+		subformRow.put("Contact_Number","+91" + ifnull(c.get("Phone"),""));
+		subformRow.put("CRMContactID",ifnull(c.getJson("id"),""));
+		subformRow.put("Distributor_Master",creatorRecordID);
+		contactListID = ifnull(c.getJson("id"),"");
+		/*********************************************Create/Update Record in Creator*********************/
+		getContact = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Contacts","(CRMContactID == \"" + contactListID + "\")",1,200,"creator_con");
+		if(getContact.get("code") == 3000)
+		{
+			data = getContact.get("data");
+			for each  data1 in data
+			{
+				conID = data1.get("ID");
+			}
+			updateResp = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Contacts",conID,subformRow,othermap,"creator_con");
+		}
+		else
+		{
+			createResp = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Contact",subformRow,othermap,"creator_con");
+		}
+	}
+	/********************************************************get Let Long code**********************/
+	street = ifnull(accountDetails.get("Billing_Street"),"");
+	city = ifnull(accountDetails.get("Billing_City"),"");
+	state = ifnull(accountDetails.get("Billing_State"),"");
+	pincode = ifnull(accountDetails.get("Billing_Code"),"");
+	country = ifnull(accountDetails.get("Billing_Country"),"");
+	full_address = street + ", " + city + ", " + state + ", " + pincode + ", " + country;
+	api_key = "AIzaSyCR95nsbu_fljMmC_z8H0Xf6Jrth0Vokms";
+	encoded_address = encodeUrl(full_address);
+	url = "https://maps.googleapis.com/maps/api/geocode/json?address=" + encoded_address + "&key=" + api_key;
+	response = getUrl(url);
+	parsed = response.toMap();
+	roundedLat = "";
+	roundedLng = "";
+	if(parsed.get("status") == "OK")
+	{
+		location = parsed.get("results").get(0).get("geometry").get("location");
+		lat = location.get("lat");
+		lng = location.get("lng");
+		roundedLat = round(lat,4);
+		roundedLng = round(lng,4);
+		updateMap = Map();
+		updateMap.put("Latitude",roundedLat.toString());
+		updateMap.put("Longitude",roundedLng.toString());
+		otherMap = Map();
+		updateResp = zoho.crm.updateRecord("Accounts",accountId,updateMap,otherMap,"zohocrm");
+		info updateResp;
+	}
+	else
+	{
+		info "Geocoding failed: " + parsed.get("status");
+	}
+	dataMap1 = Map();
+	dataMap1.put("Longitude",ifnull(roundedLng.toString(),""));
+	dataMap1.put("Latitude",ifnull(roundedLat.toString(),""));
+	getDistributorData1 = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters",creatorRecordID,"creator_con");
+	if(getDistributorData1.isNull() == false)
+	{
+		UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters",creatorRecordID.toLong(),dataMap1,othermap,"creator_con");
+	}
+}
+}

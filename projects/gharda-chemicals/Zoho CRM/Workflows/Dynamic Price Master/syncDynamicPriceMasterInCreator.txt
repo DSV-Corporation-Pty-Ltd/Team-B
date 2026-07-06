@@ -1,0 +1,93 @@
+void automation.syncDynamicPriceMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Dynamic_Price_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Dynamic Price Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncDynamicPriceMasterInCreator");
+	//Function Name
+	dataMap = Map();
+	dataMap.put("CRMID",ifnull(id.toString(),""));
+	dataMap.put("Unit_Price",ifnull(data.getJson("Price"),""));
+	dataMap.put("DP_Code",ifnull(data.getJson("Name"),""));
+	dataMap.put("Product_Code",ifnull(data.getJson("Product_Code"),""));
+	/*********************************************Get Product *****************************************************************/
+	prodId = null;
+	prodName = data.getJson("Product_Name");
+	if(prodName.isEmpty() == false)
+	{
+		prodId = prodName.get("id");
+		ProductData = zoho.crm.getRecordById("Products",prodId);
+		if(ProductData.isEmpty() == false)
+		{
+			creatorIdd = ProductData.getJSON("Creator_record_Id");
+			if(creatorIdd != null)
+			{
+				dataMap.put("Product_Name",creatorIdd);
+			}
+			else
+			{
+				getprod = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","(CRM_SO_ID == \"" + prodId.toString() + "\")",1,200,"creator_con");
+				if(getprod.get("code") == 3000)
+				{
+					data = getprod.get("data");
+					prodID1 = data.getJson("ID");
+					dataMap.put("Product",ifnull(prodID1,null));
+				}
+			}
+		}
+	}
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(data.getJSON("Creator_rec_id") != null)
+	{
+		getDatafromCreator = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Dynamic_Price_Masters",data.getJSON("Creator_rec_id").toNumber(),"creator_con");
+	}
+	else
+	{
+		getDatafromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Dynamic_Price_Masters","CRMID == \"" + id.toString() + "\"",0,200,"creator_con");
+		info getDatafromCreator;
+	}
+	othermap = Map();
+	if(getDatafromCreator.get("code") == 3000)
+	{
+		info "Update";
+		creatorRecordID = getDatafromCreator.get("data").getJSON("ID");
+		UpdateDynamicPrice = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Dynamic_Price_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateDynamicPrice);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		info "Test";
+		CreateDPrice = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Dynamic_Price_Master",dataMap,othermap,"creator_con");
+		info CreateDPrice;
+		syncc.put("Function_Response",CreateDPrice);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateDPrice.get("code") == 3000)
+		{
+			info CreateDPrice;
+			updateCRM = Map();
+			creatorRecordID = CreateDPrice.get("data").get("ID");
+			updateCRM.put("Creator_rec_id",CreateDPrice.get("data").get("ID"));
+			updatecreatorID = zoho.crm.updateRecord("Dynamic_Price_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

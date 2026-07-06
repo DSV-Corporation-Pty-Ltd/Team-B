@@ -1,0 +1,134 @@
+void automation.syncProductsInCreator(Int productId)
+{
+productDetails = zoho.crm.getRecordById("Products",productId);
+if(productDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Products";
+	syncc.put("Crm_Record_Id",productId.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncProductsInCreator");
+	//Function Name
+	creatorRecordID = productDetails.get("Creator_record_Id");
+	dataMap = Map();
+	dataMap.put("Star_Type",ifnull(productDetails.get("Star_Rating"),""));
+	dataMap.put("Sub_Type",ifnull(productDetails.get("Sub_Type"),""));
+	if(productDetails.get("Sub_Type") == "e" || productDetails.get("Sub_Type") == "E")
+	{
+		upd = Map();
+		upd.put("Sub_Type","Formulation");
+		info zoho.crm.updateRecord("Products",productId,upd);
+		dataMap.put("Sub_Type","Formulation");
+	}
+	dataMap.put("Product_Code",ifnull(productDetails.get("Product_Code"),""));
+	dataMap.put("Description",ifnull(productDetails.get("Description"),""));
+	dataMap.put("Full_Technical_Name",ifnull(productDetails.get("Full_Technical_Name"),""));
+	dataMap.put("CRM_Final_Product",ifnull(productDetails.get("Final_Products"),""));
+	getBrand = productDetails.get("Brand_Name_Master1");
+	if(getBrand.isNull() == false)
+	{
+		getBrandId = getBrand.getJSON("id");
+		if(getBrandId.isNull() == false)
+		{
+			getBrandData = zoho.crm.getRecordById("Brand_Master",getBrandId);
+			if(getBrandData.isEmpty() == false)
+			{
+				getCreatorId = getBrandData.getJSON("");
+				if(getCreatorId.isNull() == false)
+				{
+					dataMap.put("Brand_Name",getCreatorId);
+				}
+				else
+				{
+					getBrandfromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Brand_Masters","zoho_crm_id == \"" + getBrandId.toString() + "\"",0,200,"creator_con");
+					if(getBrandfromCreator.get("code") == 3000)
+					{
+						creatorBrandID = getBrandfromCreator.get("data").getJson("ID");
+						dataMap.put("Brand_Name",creatorBrandID);
+					}
+				}
+			}
+		}
+	}
+	// 	dataMap.put("Brand_Name",ifnull(productDetails.get("Brand_Name"),""));
+	dataMap.put("Pack",ifnull(productDetails.get("Pack"),0));
+	dataMap.put("NRV_Value",ifnull(productDetails.get("NRV_Value"),null));
+	dataMap.put("Unit",ifnull(productDetails.get("UOM"),""));
+	dataMap.put("Product_Category",ifnull(productDetails.get("Product_Category"),""));
+	dataMap.put("SKU1",ifnull(productDetails.get("SKU"),""));
+	dataMap.put("Product_Name",ifnull(productDetails.get("Product_Name"),""));
+	dataMap.put("Batch_Number",ifnull(productDetails.get("Batch_Number"),""));
+	dataMap.put("Product_Type",ifnull(productDetails.get("Product_Type"),""));
+	dataMap.put("Unite_Price",ifnull(productDetails.get("Unit_Price"),""));
+	dataMap.put("Manufacturer",ifnull(productDetails.get("Manufacturer"),""));
+	dataMap.put("Active",productDetails.get("Product_Active"));
+	dataMap.put("Case_Size",productDetails.get("Case_Size"));
+	dataMap.put("Update_new_Products",true);
+	dataMap.put("Minimum_Billing_Qty",productDetails.get("Minimum_Billing_Qty"));
+	dataMap.put("CRM_SO_ID",productId.toString());
+	dataMap.put("Gross_Weight",ifnull(productDetails.get("Gross_Weight"),""));
+	dataMap.put("Delivery_Unit",ifnull(productDetails.get("Delivery_Unit"),""));
+	dataMap.put("Nos_in_One_Box",ifnull(productDetails.get("Nos_in_One_Box"),""));
+	dataMap.put("Sales_Organization",ifnull(productDetails.get("Sales_Organization"),""));
+	// 	prodPriceMaster = zoho.crm.searchRecords("Price_Master","(Product_Name:equals:" + productId + ")");
+	// 	if(!prodPriceMaster.isEmpty())
+	// 	{
+	// 		productPrice = prodPriceMaster.get(0).getJSON("Final_Price");
+	// 		dataMap.put("Unite_Price",ifnull(productPrice,""));
+	// 	}
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(creatorRecordID == null || creatorRecordID == "")
+	{
+		getProdfromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","CRM_SO_ID == \"" + productId.toString() + "\"",0,200,"creator_con");
+	}
+	if(creatorRecordID.isNull() == false)
+	{
+		getProductData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters",creatorRecordID,"creator_con");
+		if(getProductData.isNull() == false)
+		{
+			Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",Updateprod);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+		}
+	}
+	else if(getProdfromCreator.get("code") == 3000)
+	{
+		creatorRecordID = getProdfromCreator.get("data").getJson("ID");
+		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",Updateprod);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+		info "Update Product:" + Updateprod;
+	}
+	else
+	{
+		CreateProd = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Master",dataMap,othermap,"creator_con");
+		info CreateProd;
+		syncc.put("Function_Response",CreateProd);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateProd.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",CreateProd.get("data").get("ID"));
+			creatorRecordID = CreateProd.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Products",productId,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

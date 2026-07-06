@@ -1,0 +1,23 @@
+void automation.Update_Account_Credit_Limit(Int recordId)
+{
+recordId = input.recordId;
+creditRecord = zoho.crm.getRecordById("Customer_Credit_Master",recordId);
+sapId = ifnull(creditRecord.get("Name"),"");
+creditLimit = ifnull(creditRecord.get("Credit_Limit"),0);
+Credit_Exposure = ifnull(creditRecord.get("Credit_Exposure"),0);
+accountData = zoho.crm.searchRecords("Accounts","(SAP_ID:equals:" + sapId + ")");
+info accountData;
+if(accountData.size() > 0)
+{
+	accountId = accountData.get(0).get("id");
+	updateMap = Map();
+	updateMap.put("Credit_Limit",creditLimit);
+	updateMap.put("Advance_Deposit",Credit_Exposure);
+	updateResp = zoho.crm.updateRecord("Accounts",accountId,updateMap);
+	info updateResp;
+}
+else
+{
+	info "No Account Found";
+}
+}

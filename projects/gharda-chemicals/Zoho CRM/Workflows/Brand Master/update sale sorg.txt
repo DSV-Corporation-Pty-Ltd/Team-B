@@ -1,0 +1,56 @@
+void automation.saleorgupdate(Int brandId)
+{
+brandRecord = zoho.crm.getRecordById("Brand_Master",brandId);
+if(brandRecord != null && brandRecord.containKey("id"))
+{
+	info "Brand Record:";
+	info brandRecord;
+	brandName = ifnull(brandRecord.get("Name"),"").toString();
+	if(brandName != "")
+	{
+		// Search Product Master records where Brand_Name lookup = current Brand_Master record ID
+		searchCriteria = "(Brand_Name_Master1:equals:" + brandId + ")";
+		info "Product Master Search Criteria: " + searchCriteria;
+		productRecords = zoho.crm.searchRecords("Products",searchCriteria,1,200);
+		info "Product Master Records:";
+		info productRecords;
+		if(productRecords != null && productRecords.size() > 0)
+		{
+			salesOrgValue = null;
+			for each  productRec in productRecords
+			{
+				if(productRec.get("Sales_Organization") != null)
+				{
+					salesOrgValue = productRec.get("Sales_Organization");
+					break;
+				}
+			}
+			if(salesOrgValue != null)
+			{
+				updateMap = Map();
+				// If Sales_Organization is lookup field, this map can be directly updated
+				updateMap.put("Sales_Organization",salesOrgValue);
+				updateResp = zoho.crm.updateRecord("Brand_Master",brandId,updateMap);
+				info "Brand Master Update Response:";
+				info updateResp;
+			}
+			else
+			{
+				info "Sales_Organization not found in matching Product_Master records.";
+			}
+		}
+		else
+		{
+			info "No Product_Master record found for Brand: " + brandName;
+		}
+	}
+	else
+	{
+		info "Brand name is empty in Brand_Master record ID: " + brandId;
+	}
+}
+else
+{
+	info "Brand_Master record not found for ID: " + brandId;
+}
+}

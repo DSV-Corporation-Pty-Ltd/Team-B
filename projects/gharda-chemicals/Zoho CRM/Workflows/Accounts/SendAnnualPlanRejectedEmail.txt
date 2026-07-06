@@ -1,0 +1,33 @@
+void automation.SendAnnualPlanRejectedEmail(Int accID)
+{
+accObj = zoho.crm.getRecordById("Accounts",accID);
+if(accObj != null && accObj.isEmpty() == false)
+{
+	distributorName = ifnull(accObj.get("Account_Name"),"Distributor");
+	distributorEmail = ifnull(accObj.get("Account_Email"),"");
+	creatorRecordID = ifnull(accObj.get("Creator_record_Id"),"");
+	rejectedReason = ifnull(accObj.get("Rejection_Reason"),"No specific reason provided.");
+	getDistributorData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters",creatorRecordID,"creator_con");
+	if(getDistributorData.isNull() == false)
+	{
+		updateMap = Map();
+		othermap = Map();
+		updateMap.put("Annual_Plan_Status","Rejected");
+		UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters",creatorRecordID.toLong(),updateMap,othermap,"creator_con");
+		info UpdateDist;
+	}
+	if(distributorEmail == "")
+	{
+		return;
+	}
+	mailSubject = "Annual Plan Rejected – Action Required";
+	htmlMessage = "<html><body style='font-family:Arial,sans-serif;background-color:#f3f4f6;padding:20px;'><div style='max-width:600px;margin:auto;background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,0.08);'><h2 style='color:#dc2626;text-align:center;margin-top:0;'>Annual Plan Rejected</h2><p style='font-size:14px;color:#111827;'>Dear <b>" + distributorName + "</b>,</p><p style='font-size:14px;color:#374151;'>Your submitted <b>Annual Plan</b> has been reviewed and has been <b>rejected</b>.</p><div style='background:#fef2f2;border-left:4px solid #dc2626;padding:14px;margin:16px 0;border-radius:6px;'><p style='margin:0;font-size:13px;color:#7f1d1d;'><b>Reason for Rejection:</b></p><p style='margin:6px 0 0;font-size:13px;color:#7f1d1d;'>" + rejectedReason + "</p></div><p style='font-size:14px;color:#374151;'>Please review the above reason, update your Annual Plan accordingly, and resubmit it for approval.</p><hr style='border:none;border-top:1px solid #e5e7eb;margin:20px 0;'></div></body></html>";
+	sendmail
+	[
+		from :zoho.loginuserid
+		to :distributorEmail
+		subject :mailSubject
+		message :htmlMessage
+	]
+}
+}

@@ -1,0 +1,217 @@
+void automation.syncProformaInvoiceInCreator(Int id)
+{
+InvData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Proforma_Invoice/" + id
+	type :GET
+	connection:"zohocrm"
+];
+InvoiceDetails = InvData.get("data");
+info InvoiceDetails;
+if(InvoiceDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Proforma Invoice";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","syncProformaInvoiceInCreator");
+	//Function Name
+	dataMap = Map();
+	creatorRecordID = InvoiceDetails.getJSON("Creator_rec_id");
+	/*********************************************Map Data *****************************************************************/
+	dataMap.put("zoho_crm_id",ifnull(id.toString(),""));
+	dataMap.put("Validity_Days",ifnull(InvoiceDetails.getJson("Validity_Days"),""));
+	dataMap.put("Status",ifnull(InvoiceDetails.getJson("Status"),""));
+	if(InvoiceDetails.getJson("Prepared_By") != null && InvoiceDetails.getJson("Prepared_By").isEmpty() == false)
+	{
+		getUserData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Users","UserID == \"" + InvoiceDetails.getJson("Prepared_By").get("id").toString() + "\"",0,200,"creator_con");
+		if(getUserData.get("code") == 3000)
+		{
+			creatorUserID = getUserData.get("data").getJSON("ID");
+			dataMap.put("Prepared_By",creatorUserID);
+		}
+	}
+	dataMap.put("Status",ifnull(InvoiceDetails.getJson("Status"),""));
+	dataMap.put("Status",ifnull(InvoiceDetails.getJson("Status"),""));
+	PIDate = "";
+	if(InvoiceDetails.getJSON("PI_Date") != null)
+	{
+		PIDate = InvoiceDetails.getJSON("PI_Date").toString("dd-MMM-yyyy");
+	}
+	dataMap.put("PI_Date",PIDate);
+	expshipDate = "";
+	if(InvoiceDetails.getJSON("Expected_Shipment_Date") != null)
+	{
+		expshipDate = InvoiceDetails.getJSON("Expected_Shipment_Date").toString("dd-MMM-yyyy");
+	}
+	dataMap.put("Expected_Shipment_Date",expshipDate);
+	/*********************************************Billing Address***************************************************************/
+	dataMap.put("Billing_Street",ifnull(InvoiceDetails.getJson("Billing_Street"),""));
+	dataMap.put("Billing_City","+91" + ifnull(InvoiceDetails.getJson("Billing_City"),""));
+	dataMap.put("Billing_State",ifnull(InvoiceDetails.getJson("Billing_State"),""));
+	dataMap.put("Billing_Code",ifnull(InvoiceDetails.getJson("Billing_Code"),""));
+	dataMap.put("Billing_Country",ifnull(InvoiceDetails.getJson("Billing_Country"),""));
+	dataMap.put("Billing_Phone",ifnull(InvoiceDetails.getJson("Billing_Phone"),""));
+	/*********************************************Shipping Address**************************************************************/
+	dataMap.put("Shipping_Street",ifnull(InvoiceDetails.getJson("Shipping_Street"),""));
+	dataMap.put("Shipping_City",ifnull(InvoiceDetails.getJson("Shipping_City"),""));
+	dataMap.put("Shipping_State",ifnull(InvoiceDetails.getJson("Shipping_State"),""));
+	dataMap.put("Shipping_Code",ifnull(InvoiceDetails.getJson("Shipping_Code"),""));
+	dataMap.put("Shipping_Country",ifnull(InvoiceDetails.getJson("Shipping_Country"),""));
+	dataMap.put("Shipping_Phone",ifnull(InvoiceDetails.getJson("Shipping_Phone"),""));
+	/*********************************************Map Customer *****************************************************************/
+	accid = null;
+	accountName = InvoiceDetails.getJson("Customer");
+	if(accountName.isEmpty() == false)
+	{
+		accid = accountName.get("id");
+		accountData = zoho.crm.getRecordById("Accounts",accid);
+		if(accountData.isEmpty() == false)
+		{
+			creatorIdd = accountData.getJSON("Creator_record_Id");
+			if(creatorIdd != null)
+			{
+				dataMap.put("Customer",creatorIdd);
+			}
+			else
+			{
+				getContact = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Customers","(zoho_crm_id == \"" + accid.toString() + "\")",1,200,"creator_con");
+				if(getContact.get("code") == 3000)
+				{
+					data = getContact.get("data");
+					accID1 = data.getJson("ID");
+					dataMap.put("Customer",ifnull(accID1,null));
+				}
+			}
+		}
+	}
+	/*********************************************Map Sales Order **************************************************************/
+	SOid = null;
+	salesOrder = InvoiceDetails.getJson("Sales_Order");
+	if(salesOrder.isEmpty() == false)
+	{
+		SOid = salesOrder.get("id");
+		SOData = zoho.crm.getRecordById("Sales_Orders",SOid);
+		if(SOData.isEmpty() == false)
+		{
+			creatorIdd = SOData.getJSON("Creator_SO_Id");
+			if(creatorIdd != null)
+			{
+				dataMap.put("PO_No",creatorIdd);
+			}
+			else
+			{
+				getSalesOrder = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Purchase_Orders","(CRM_SO_ID == \"" + SOid.toString() + "\")",1,200,"creator_con");
+				if(getSalesOrder.get("code") == 3000)
+				{
+					data = getSalesOrder.get("data");
+					SOID1 = data.getJson("ID");
+					dataMap.put("PO_No",ifnull(SOID1,null));
+				}
+			}
+		}
+	}
+	/*********************************************Map Shipment & Export Details ****************************************************/
+	dataMap.put("Mode_of_Transport",ifnull(InvoiceDetails.getJson("Mode_of_Transport"),""));
+	dataMap.put("Port_of_Loading",ifnull(InvoiceDetails.getJson("Port_of_Loading"),""));
+	dataMap.put("Port_of_Discharge",ifnull(InvoiceDetails.getJson("Port_of_Discharge"),""));
+	dataMap.put("Final_Destination",ifnull(InvoiceDetails.getJson("Final_Destination"),""));
+	dataMap.put("Country_of_Origin",ifnull(InvoiceDetails.getJson("Country_of_Origin"),""));
+	dataMap.put("Place_of_Receipt",ifnull(InvoiceDetails.getJson("Place_of_Receipt"),""));
+	dataMap.put("Shipment_Terms_Incoterms",ifnull(InvoiceDetails.getJson("Shipment_Terms_Incoterms"),""));
+	dataMap.put("Terms_and_Conditions",ifnull(InvoiceDetails.getJson("Terms_and_Conditions"),""));
+	/*********************************************Map Payment & Commercial Terms***************************************************/
+	dataMap.put("Payment_Terms",ifnull(InvoiceDetails.getJson("Payment_Terms"),""));
+	dataMap.put("Payment_Method",ifnull(InvoiceDetails.getJson("Payment_Method"),""));
+	dataMap.put("Credit_Days",ifnull(InvoiceDetails.getJson("Credit_Days"),""));
+	dataMap.put("Account_No",ifnull(InvoiceDetails.getJson("Account_No"),""));
+	dataMap.put("Bank_Name",ifnull(InvoiceDetails.getJson("Bank_Name"),""));
+	dataMap.put("IFSC_SWIFT_Code",ifnull(InvoiceDetails.getJson("IFSC_SWIFT_Code"),""));
+	/*********************************************Get Subform Data ****************************************/
+	Ordered_Items = InvoiceDetails.getJson("PI_Line_Items");
+	if(Ordered_Items.isEmpty() == false)
+	{
+		proList = List();
+		for each  orderItem in Ordered_Items
+		{
+			proMap = Map();
+			productId = orderItem.get("Product_Name").get("id");
+			prodData = zoho.crm.getRecordById("Products",productId);
+			getCreatorId = prodData.getJSON("Creator_record_Id");
+			if(getCreatorId != null)
+			{
+				proMap.put("Product_Name",getCreatorId.toNumber());
+				proMap.put("SKU",getCreatorId.toNumber());
+			}
+			else
+			{
+				getproData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","(CRM_SO_ID == \"" + productId.toString() + "\")",0,200,"creator_con");
+				if(getproData.get("code") == 3000)
+				{
+					proMap.put("Product_Name",getproData.get("data").getJson("ID"));
+					proMap.put("SKU",getproData.get("data").getJson("ID"));
+				}
+			}
+			proMap.put("Product_Code",orderItem.getJSON("Product_Code"));
+			proMap.put("Batch_Number",getproData.get("data").getJson("Batch_Number"));
+			proMap.put("Quantity",orderItem.getJSON("Quantity"));
+			proMap.put("Price",orderItem.getJSON("Price"));
+			proMap.put("Remarks",orderItem.getJSON("Remarks"));
+			proMap.put("Total",orderItem.getJSON("Total"));
+			proList.add(proMap);
+		}
+		dataMap.put("Line_Items",proList);
+	}
+	dataMap.put("Tax",ifnull(InvoiceDetails.getJson("Tax"),0));
+	dataMap.put("Sub_Total",ifnull(InvoiceDetails.getJson("Sub_Total"),""));
+	dataMap.put("Tax_Amount",ifnull(InvoiceDetails.getJson("Tax_Amount"),0));
+	dataMap.put("Grand_Total",ifnull(InvoiceDetails.getJson("Grand_Total"),0));
+	info dataMap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(creatorRecordID != null)
+	{
+		getInvData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Proforma_Invoices",creatorRecordID.toNumber(),"creator_con");
+	}
+	else
+	{
+		getInvData = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Proforma_Invoices","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+	}
+	othermap = Map();
+	if(getInvData.get("code") == 3000)
+	{
+		info "Update";
+		creatorRecordID = getInvData.get("data").getJSON("ID");
+		UpdateInvoice = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Proforma_Invoices",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateInvoice);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		dataMap.put("PI_Sync_From_CRM",true);
+		CreateInv = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Proforma_Invoice",dataMap,othermap,"creator_con");
+		info CreateInv;
+		syncc.put("Function_Response",CreateInv);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateInv.get("code") == 3000)
+		{
+			updateCRM = Map();
+			creatorRecordID = CreateInv.get("data").get("ID");
+			updateCRM.put("Creator_rec_id",CreateInv.get("data").get("ID"));
+			updatecreatorID = zoho.crm.updateRecord("Proforma_Invoice",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

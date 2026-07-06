@@ -1,0 +1,94 @@
+void automation.OtpNotificationtoDsitributor(Int salesOrderId)
+{
+soRec = zoho.crm.getRecordById("Sales_Orders",salesOrderId);
+if(soRec == null || soRec.isEmpty())
+{
+	info "Sales Order not found, email not sent. ID: " + salesOrderId;
+	return;
+}
+soNo = ifnull(soRec.get("So_No"),"");
+emailSubjectValue = ifnull(soRec.get("Subject"),"");
+OrderValue = ifnull(soRec.get("Grand_Total"),0);
+distributorName = "Distributor";
+accObj = soRec.get("Account_Name");
+if(accObj != null)
+{
+	distributorName = accObj.get("name");
+}
+distributorEmail = ifnull(soRec.get("Email"),"");
+if(distributorEmail == null || distributorEmail.trim() == "")
+{
+	info "Distributor email missing, email not sent. SalesOrderId: " + salesOrderId;
+	return;
+}
+// Generate OTP (but DO NOT include in email)
+otp = randomnumber(100000,999999);
+mailSubject = "";
+if(emailSubjectValue != "")
+{
+	mailSubject = "Sales Order -" + emailSubjectValue + " is created";
+}
+else
+{
+	mailSubject = "Sales Order " + soNo + " is created";
+}
+// ✅ Updated Email Template (NO OTP SHOWN)
+htmlMessage = "<html><body style='font-family:Arial,sans-serif;background:#f9f9f9;padding:20px;'><div style='max-width:600px;margin:auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 5px rgba(0,0,0,0.1);'><h2 style='color:#2563eb;text-align:center;margin:0;'>Sales Order Created</h2><p>Dear " + distributorName + ",</p><p>Your Sales Order has been created successfully.</p><table style='width:100%;border-collapse:collapse;margin:15px 0;'><tr><td style='padding:10px;border:1px solid #eee;background:#f8fafc;'><b>Order Value</b></td><td style='padding:10px;border:1px solid #eee;'>" + OrderValue + "</td></tr></table><hr style='border:none;border-top:1px solid #eee;margin:20px 0;'/><p style='font-size:14px;color:#111827;'>An OTP has been sent to your registered mobile number. Kindly check and proceed with verification.</p><hr style='border:none;border-top:1px solid #eee;'><p style='font-size:12px;color:#888;text-align:center;margin:0;'>This is an automated email. Please do not reply.</p></div></body></html>";
+sendmail
+[
+	from :zoho.loginuserid
+	to :distributorEmail
+	subject :mailSubject
+	message :htmlMessage
+]
+getSOdATA = zoho.crm.getRecordById("Sales_Orders",salesOrderId);
+if(getSOdATA.isEmpty() == false)
+{
+	OTP = ifnull(getSOdATA.getJson("OTP"),"");
+	Account_Name = getSOdATA.getJson("Account_Name");
+	distributor_id = null;
+	if(Account_Name.isEmpty() == false)
+	{
+		distributor_id = Account_Name.get("id");
+	}
+	getdist = zoho.crm.getRecordById("Accounts",distributor_id.toLong());
+	if(getdist.isEmpty() == false)
+	{
+		distphone = "";
+		phvar = getdist.get("Phone");
+		if(phvar.isEmpty() == false)
+		{
+			distphone = phvar;
+		}
+		else
+		{
+			distphone = getdist.getJson("Contact_Number");
+		}
+		ownrPho = right(distphone,10);
+		//info "ownrPho"+ownrPho;
+		APIKey = zoho.crm.getOrgVariable("APIKey");
+		template_id = "69d8d07ec9dadcdb71025f56";
+		geturl = "https://control.msg91.com/api/v5/otp?mobile=91" + ownrPho + "&authkey=" + APIKey + "&template_id=" + template_id;
+		//info geturl;
+		response = invokeurl
+		[
+			url :geturl
+			type :POST
+			headers:{"Content-Type":"application/json","Accept":"application/json"}
+		];
+		syncc = Map();
+		modulename = "SO";
+		syncc.put("Module_Name",modulename);
+		syncc.put("Name","OtpNotificationtoDsitributor");
+		syncc.put("Function_Response",response);
+		syncc.put("API_Payload",geturl.toString());
+		syncc.put("API_URL",geturl.toString());
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		syncc.put("Trigger_Type","Send SO OTP");
+		syncc.put("Status",response.get("type"));
+		syncc.put("Crm_Record_Id",salesOrderId.toString());
+		info zoho.crm.createRecord("Log_Master",syncc);
+	}
+}
+info "Email sent. SO: " + soNo + " | To: " + distributorEmail + " | OTP: " + otp;
+}

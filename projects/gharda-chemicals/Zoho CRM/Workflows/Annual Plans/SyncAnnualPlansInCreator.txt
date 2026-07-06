@@ -1,0 +1,142 @@
+void automation.SyncAnnualPlansInCreator(Int id)
+{
+annualPlan = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Annual_Plans/" + id
+	type :GET
+	connection:"zohocrm"
+];
+annualPlanDetails = annualPlan.get("data");
+if(annualPlanDetails.isEmpty() == false)
+{
+	/******************************** LOG ********************************/
+	syncc = Map();
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name","Annual Plans");
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncAnnualPlansInCreator");
+	/******************************** PARENT MAP ********************************/
+	dataMap = Map();
+	dataMap.put("CRMID",id.toString());
+	dataMap.put("Annual_Plan_Name",ifnull(annualPlanDetails.getJson("Name"),""));
+	dataMap.put("Product_Category",ifnull(annualPlanDetails.getJson("Product_Category"),""));
+	dataMap.put("Star_Type",ifnull(annualPlanDetails.getJson("Star_Rating"),""));
+	dataMap.put("Total_Amt",annualPlanDetails.getJson("Total_Amt"));
+	dataMap.put("Total_Qty",annualPlanDetails.getJson("Total_Qty"));
+	dataMap.put("Financial_Year",ifnull(annualPlanDetails.getJson("Financial_Year"),""));
+	/******************************** DISTRIBUTOR ********************************/
+	account = annualPlanDetails.getJson("Distributor");
+	if(account != null)
+	{
+		accid = account.get("id");
+		accData = zoho.crm.getRecordById("Accounts",accid);
+		if(accData.get("Creator_record_Id") != null)
+		{
+			dataMap.put("Distributor",accData.get("Creator_record_Id"));
+		}
+	}
+	/******************************** BRAND ********************************/
+	brand = annualPlanDetails.getJson("Brand_Name");
+	if(brand != null)
+	{
+		brdId = brand.get("id");
+		brdData = zoho.crm.getRecordById("Brand_Master",brdId);
+		if(brdData.get("Creator_rec_id") != null)
+		{
+			dataMap.put("Brand_Name",brdData.get("Creator_rec_id"));
+		}
+	}
+	/******************************** FETCH CREATOR RECORD ********************************/
+	if(annualPlanDetails.getJSON("Creator_Rec_Id") != null)
+	{
+		getPlan = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Annual_Plans",annualPlanDetails.getJSON("Creator_Rec_Id").toLong(),"creator_con");
+	}
+	else
+	{
+		getPlan = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Annual_Plans","CRMID == \"" + id.toString() + "\"",1,200,"creator_con");
+	}
+	/******************************** BUILD CREATOR SUBFORM MAP ********************************/
+	creatorSubformMap = Map();
+	if(getPlan.get("code") == 3000)
+	{
+		cData = getPlan.get("data");
+		if(cData.containsKey("Product_Details"))
+		{
+			for each  sf in cData.get("Product_Details")
+			{
+				if(sf.get("Creator_subform_id") != null)
+				{
+					creatorSubformMap.put(sf.get("Creator_subform_id"),sf.get("ID"));
+				}
+			}
+		}
+	}
+	/******************************** SUBFORM SYNC ********************************/
+	Ordered_Items = annualPlanDetails.getJson("Product_Details");
+	if(Ordered_Items.isEmpty() == false)
+	{
+		proList = List();
+		for each  orderItem in Ordered_Items
+		{
+			proMap = Map();
+			/******** PRODUCT ********/
+			prod = orderItem.getJson("Product");
+			if(prod != null)
+			{
+				pId = prod.get("id");
+				pData = zoho.crm.getRecordById("Products",pId);
+				if(pData.get("Creator_record_Id") != null)
+				{
+					proMap.put("Product",pData.get("Creator_record_Id"));
+				}
+			}
+			/******** SUBFORM UPDATE MATCH ********/
+			crmSubformId = orderItem.getJSON("id").toString();
+			if(creatorSubformMap.containsKey(crmSubformId))
+			{
+				proMap.put("ID",creatorSubformMap.get(crmSubformId));
+			}
+			proMap.put("CRM_subform_id",crmSubformId);
+			/******** MONTHS ********/
+			proMap.put("SKU",ifnull(orderItem.getJSON("SKU"),""));
+			proMap.put("January",ifnull(orderItem.getJSON("January"),""));
+			proMap.put("February",ifnull(orderItem.getJSON("February"),""));
+			proMap.put("March",ifnull(orderItem.getJSON("March"),""));
+			proMap.put("April",ifnull(orderItem.getJSON("April"),""));
+			proMap.put("May",ifnull(orderItem.getJSON("May"),""));
+			proMap.put("June",ifnull(orderItem.getJSON("June"),""));
+			proMap.put("July",ifnull(orderItem.getJSON("July"),""));
+			proMap.put("August",ifnull(orderItem.getJSON("August"),""));
+			proMap.put("September",ifnull(orderItem.getJSON("September"),""));
+			proMap.put("October",ifnull(orderItem.getJSON("October"),""));
+			proMap.put("November",ifnull(orderItem.getJSON("November"),""));
+			proMap.put("December",ifnull(orderItem.getJSON("December"),""));
+			proList.add(proMap);
+		}
+		dataMap.put("Product_Details",proList);
+	}
+	/******************************** CREATE / UPDATE ********************************/
+	othermap = Map();
+	if(getPlan.get("code") == 3000)
+	{
+		creatorID = getPlan.get("data").get("ID");
+		resp = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Annual_Plans",creatorID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Trigger_Type","Update");
+		syncc.put("Function_Response",resp);
+	}
+	else
+	{
+		dataMap.put("sync_from_crm",true);
+		resp = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Annual_Plans",dataMap,othermap,"creator_con");
+		syncc.put("Trigger_Type","Create");
+		syncc.put("Function_Response",resp);
+		if(resp.get("code") == 3000)
+		{
+			zoho.crm.updateRecord("Annual_Plans",id,{"Creator_Rec_Id":resp.get("data").get("ID")});
+		}
+	}
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

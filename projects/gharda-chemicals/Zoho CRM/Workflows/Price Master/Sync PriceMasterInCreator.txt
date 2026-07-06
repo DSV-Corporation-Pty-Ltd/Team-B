@@ -1,0 +1,196 @@
+void automation.SyncPriceMaster(Int id)
+{
+data = zoho.crm.getRecordById("Price_Master",id);
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Price Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncPriceMaster");
+	//Function Name
+	creatorRecordID = data.get("Creator_record_Id");
+	dataMap = Map();
+	dataMap.put("CRM_ProductPrice_ID",id.toString());
+	dataMap.put("Product_Code",data.getJSON("Product_Code"));
+	dataMap.put("Condition_Type",data.getJSON("Condition_Type"));
+	dataMap.put("Combination_Type",data.getJSON("Combination_Type"));
+	dataMap.put("Sequence_Number",data.getJSON("Sequence_Number"));
+	dataMap.put("Sales_Organization",data.getJSON("Sales_Organization"));
+	dataMap.put("Distribution_Channel",data.getJSON("Distribution_Channel"));
+	dataMap.put("Customer_Number",data.getJSON("Customer_Number"));
+	dataMap.put("Customer_Country",data.getJSON("Customer_Country"));
+	dataMap.put("Country_Key",data.getJSON("Country_Key"));
+	dataMap.put("Region_State",data.getJSON("Region_State"));
+	dataMap.put("Delivering_Plant_Region",data.getJSON("Delivering_Plant_Region"));
+	dataMap.put("Plant_Code",data.getJSON("Plant_Code"));
+	dataMap.put("Payer_Customer",data.getJSON("Payer_Customer"));
+	dataMap.put("Ship_to_Customer",data.getJSON("Ship_to_Customer"));
+	dataMap.put("Customer_Group",data.getJSON("Customer_Group"));
+	dataMap.put("Sales_Office",data.getJSON("Sales_Office"));
+	dataMap.put("Sales_Group",data.getJSON("Sales_Group"));
+	dataMap.put("Sales_Document_Type",data.getJSON("Sales_Document_Type"));
+	dataMap.put("Control_Code",data.getJSON("Control_Code"));
+	dataMap.put("Departure_Country",data.getJSON("Departure_Country"));
+	dataMap.put("Tax_Classification_Level_3",data.getJSON("Tax_Classification_Level_3"));
+	dataMap.put("Tax_Indicator_for_Material_Level_3",data.getJSON("Tax_Indicator_for_Material_Level_3"));
+	dataMap.put("Tax_Classification_Level_5",data.getJSON("Tax_Classification_Level_5"));
+	dataMap.put("Tax_Indicator_for_Material_Level_5",data.getJSON("Tax_Indicator_for_Material_Level_5"));
+	dataMap.put("Amount",data.getJSON("Amount"));
+	// 	dataMap.put("Valid_From1",data.getJSON("Valid_From1"));
+	// 	dataMap.put("Valid_To1",data.getJSON("Valid_To1"));
+	validFrom = "";
+	if(data.getJSON("Valid_From1").isNull() == false)
+	{
+		validFrom = data.getJSON("Valid_From1").toString("dd-MMM-yyyy HH:mm:ss");
+	}
+	dataMap.put("Valid_From1",validFrom);
+	validTo = "";
+	if(data.getJSON("Valid_To1").isNull() == false)
+	{
+		validTo = data.getJSON("Valid_To1").toString("dd-MMM-yyyy HH:mm:ss");
+	}
+	dataMap.put("Valid_To1",validTo);
+	// 	dataMap.put("Unit",ifnull(data.getJSON("Unit"),""));
+	if(data.getJSON("Product_Name").isEmpty() == false)
+	{
+		prodId = data.getJSON("Product_Name").getJSON("id");
+		prodMaster = zoho.crm.searchRecords("Products","(id:equals:" + prodId + ")");
+		if(!prodMaster.isEmpty())
+		{
+			get_creatorId = prodMaster.get(0).getJSON("Creator_record_Id");
+			if(get_creatorId != null)
+			{
+				dataMap.put("ProductName",get_creatorId);
+				dataMap.put("SKU",get_creatorId);
+			}
+			else
+			{
+				getproduc = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Product_Masters","CRM_SO_ID == \"" + prodId.toString() + "\"",0,200,"creator_con");
+				if(getproduc.get("code") == 3000)
+				{
+					data = getproduc.get("data");
+					prodId = data.getJson("ID");
+					dataMap.put("ProductName",prodId);
+					dataMap.put("SKU",prodId);
+				}
+			}
+		}
+	}
+	// 	if(data.getJSON("Plant") != null)
+	// 	{
+	// 		PlantId = data.getJSON("Plant").getJSON("id");
+	// 		if(PlantId != null)
+	// 		{
+	// 			getRData = zoho.crm.getRecordById("Plants_Master",PlantId);
+	// 			if(getRData.isEmpty() == false)
+	// 			{
+	// 				PId = getRData.getJSON("Creator_Rec_Id");
+	// 				if(PId != null && PId != "")
+	// 				{
+	// 					info "TEst1-->" + PId;
+	// 					dataMap.put("Plant",PId.toLong());
+	// 				}
+	// 				else
+	// 				{
+	// 					plant = ifnull(data.getJSON("Plant").getJSON("name"),"");
+	// 					getPlant = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Plants_Master_Report","Plant == \"" + plant + "\"",0,200,"creator_con");
+	// 					if(getPlant.get("code") == 3000)
+	// 					{
+	// 						info "TEst2222-->" + plant;
+	// 						data = getPlant.get("data");
+	// 						plantId = data.getJson("ID");
+	// 						dataMap.put("Plant",plantId);
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	if(data.getJSON("Region") != null)
+	// 	{
+	// 		RegionId = data.getJSON("Region").getJSON("id");
+	// 		if(RegionId != null)
+	// 		{
+	// 			getRData = zoho.crm.getRecordById("Region_Master",RegionId);
+	// 			if(getRData.isEmpty() == false)
+	// 			{
+	// 				RId = getRData.getJSON("Creator_record_Id");
+	// 				if(RId != null && RId != "")
+	// 				{
+	// 					dataMap.put("Region",RId);
+	// 				}
+	// 				else
+	// 				{
+	// 					region = ifnull(data.getJSON("Region").getJSON("name"),"");
+	// 					getRegion = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Region_Masters","Region_Name == \"" + region + "\"",0,200,"creator_con");
+	// 					if(getRegion.get("code") == 3000)
+	// 					{
+	// 						data = getRegion.get("data");
+	// 						regionId = data.getJson("ID");
+	// 						dataMap.put("Region",regionId);
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	info dataMap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	getPriceMaster = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Pricing_Masters","CRM_ProductPrice_ID == \"" + id.toString() + "\"",0,200,"creator_con");
+	if(creatorRecordID != null && creatorRecordID != "")
+	{
+		Idd = creatorRecordID.toLong();
+		getPriceData = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Pricing_Masters",Idd,"creator_con");
+		if(getPriceData.get("code") == 3000)
+		{
+			info getPriceData;
+			Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Pricing_Masters",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+			info Updateprod;
+			syncc.put("Function_Response",Updateprod);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger
+		}
+	}
+	else if(getPriceMaster.get("code") == 3000)
+	{
+		info "Testinggg1";
+		pMId = getPriceMaster.get("data").getJson("ID");
+		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Pricing_Masters",pMId.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",Updateprod);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+		dataPrice = Map();
+		dataPrice.put("Price_Update",true);
+		updateprice = zoho.crm.updateRecord("Price_Master",id,dataPrice);
+	}
+	else
+	{
+		info "Testinggg";
+		CreatePriceMaster = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Price_Master",dataMap,othermap,"creator_con");
+		info CreatePriceMaster;
+		syncc.put("Function_Response",CreatePriceMaster);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreatePriceMaster.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",CreatePriceMaster.get("data").get("ID"));
+			creatorRecordID = CreatePriceMaster.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Price_Master",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

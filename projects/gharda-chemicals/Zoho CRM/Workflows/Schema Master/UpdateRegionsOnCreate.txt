@@ -1,0 +1,59 @@
+void automation.UpdateRegionInSchemeMaster1(Int id)
+{
+data = zoho.crm.getRecordById("Scheme_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	info "Test";
+	regionStr = data.get("Regions1");
+	// "West/East"
+	if(regionStr != null && regionStr != "")
+	{
+		regionIdList = List();
+		regionList = List();
+		if(regionStr != null && regionStr != "")
+		{
+			regionList = regionStr.toList("/");
+			info regionList;
+			if(regionList.size() > 0)
+			{
+				for each  regionName in regionList
+				{
+					regionName = regionName.trim();
+					searchCriteria = "(Name:equals:" + regionName + ")";
+					regionRecords = zoho.crm.searchRecords("Region_Master",searchCriteria);
+					if(regionRecords != null && regionRecords.size() > 0)
+					{
+						regionId = regionRecords.get(0).get("id");
+						regionMap = Map();
+						mps = Map();
+						regionMap.put("id",regionRecords.get(0).get("id").toLong());
+						mps.put("Regions",regionMap);
+						regionIdList.add(mps);
+					}
+				}
+				info "RegionListIds:" + regionIdList;
+			}
+			if(regionIdList.size() > 0)
+			{
+				mp = Map();
+				mp.put("Regions",regionIdList);
+				info mp;
+				// updateRegions = zoho.crm.updateRecord("Scheme_Master",id, mp);
+				// info updateRegions;
+				datamap1 = Map();
+				datamap1.put("data",{mp});
+				/*******************************************************Update Record in Crm****************************************************/
+				updateresp = invokeurl
+				[
+					url :"https://www.zohoapis.in/crm/v8/Scheme_Master/" + id
+					type :PUT
+					parameters:datamap1.toString()
+					connection:"zohocrm"
+				];
+				info "updateresp" + updateresp;
+			}
+		}
+	}
+}
+}

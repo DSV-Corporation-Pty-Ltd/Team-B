@@ -1,0 +1,84 @@
+void automation.uploadDispatchMasterAttachmentsInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Dispatch_Master",id);
+othermap = Map();
+if(data.isEmpty() == false)
+{
+	getCreatorId = data.getJSON("Creator_rec_id");
+}
+getAttachments = zoho.crm.getRelatedRecords("Attachments","Dispatch_Master",id);
+info getAttachments;
+if(getAttachments.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Dispatch Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","uploadDispatchMasterAttachmentsInCreator");
+	//Function Name
+	for each  rec in getAttachments
+	{
+		mps = Map();
+		getFileId = rec.getJSON("$file_id");
+		getFileName = rec.getJSON("File_Name");
+		if(getFileId != null)
+		{
+			mps.put("File_id",getFileId);
+		}
+		if(getFileName != null)
+		{
+			mps.put("File_Name",getFileName);
+		}
+		if(getCreatorId != null)
+		{
+			mps.put("Customer_Dispatch",getCreatorId);
+		}
+		getAttachment = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Attachments","File_id == \"" + getFileId + "\"",0,200,"creator_con");
+		if(getAttachment.get("code") == 3000)
+		{
+			info " This Attachment already Found";
+		}
+		else
+		{
+			CreateAttachment = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Attachment",mps,othermap,"creator_con");
+			info CreateAttachment;
+			if(CreateAttachment.get("code") == 3000)
+			{
+				creatorRecordID = CreateAttachment.get("data").get("ID");
+				if(creatorRecordID != null)
+				{
+					downloaded_file = invokeurl
+					[
+						url :"https://www.zohoapis.in/crm/v8/files?id=" + getFileId
+						type :GET
+						connection:"zohocrm"
+					];
+					downloaded_file.setParamName("file");
+					if(downloaded_file.isEmpty() == false)
+					{
+						upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Attachments/" + creatorRecordID + "/Upload_File/upload";
+						response = invokeurl
+						[
+							url :upload_url
+							type :POST
+							files:downloaded_file
+							connection:"creator_con"
+						];
+						info response;
+						syncc.put("Function_Response",response);
+						//Function Response
+						syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+						//Execution Time 
+						syncc.put("Trigger_Type","Upload Attachment");
+						//Trigger  
+						info zoho.crm.createRecord("Log_Master",syncc);
+					}
+				}
+			}
+		}
+	}
+}
+}

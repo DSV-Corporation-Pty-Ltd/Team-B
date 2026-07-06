@@ -1,0 +1,29 @@
+void automation.update_sales_Order_approval_status_in_creator(Int id)
+{
+/*********************************Log master Info*************************************************/
+syncc = Map();
+modulename = "Sales Order";
+syncc.put("Crm_Record_Id",id.toString());
+syncc.put("Module_Name",modulename);
+syncc.put("Syncing_To","Creator");
+syncc.put("Syncing_From","Crm");
+syncc.put("Name","Update Approval Status in Creator");
+//Function Name
+mp = Map();
+data = zoho.crm.getRecordById("Sales_Orders",id);
+mp.put("Status",data.getJSON("Status"));
+othermap = Map();
+CreatorSOID = data.getJSON("Creator_SO_Id");
+getSOFromCreator = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Order_Management",CreatorSOID.toLong(),"creator_con");
+if(getSOFromCreator.isNull() == false)
+{
+	UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Order_Management",CreatorSOID.toLong(),mp,othermap,"creator_con");
+	syncc.put("Function_Response",UpdateDist);
+	//Function Response
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	//Execution Time 
+	syncc.put("Trigger_Type","Update");
+	//Trigger
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

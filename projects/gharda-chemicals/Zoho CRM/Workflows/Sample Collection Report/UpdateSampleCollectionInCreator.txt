@@ -1,0 +1,264 @@
+void automation.SyncSampleCollectionInCreator(Int id)
+{
+sampleData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Sample_Collection_Report/" + id
+	type :GET
+	connection:"zohocrm"
+];
+getsampleDetails = sampleData.get("data");
+info getsampleDetails;
+if(getsampleDetails.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Sample Collection Report";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","Sync Sample Collection Report In Creator");
+	//Function Name
+	dataMap = Map();
+	region = getsampleDetails.getJSON("Region");
+	territory = getsampleDetails.getJSON("Territory_Name");
+	govtLetter = getsampleDetails.getJSON("Govt_Letter_Upload");
+	info govtLetter;
+	/*********************************************Map Data *****************************************************************/
+	info "territory:" + territory;
+	dataMap.put("zoho_crm_id",ifnull(id.toString(),""));
+	if(getsampleDetails.getJson("Officer_Contact_Number") != null && getsampleDetails.getJson("Officer_Contact_Number") != "")
+	{
+		if(getsampleDetails.getJson("Officer_Contact_Number").contains("+91"))
+		{
+			dataMap.put("Officer_Contact_Number",getsampleDetails.getJson("Officer_Contact_Number"));
+		}
+		else
+		{
+			dataMap.put("Officer_Contact_Number","+91" + ifnull(getsampleDetails.getJson("Officer_Contact_Number"),""));
+		}
+	}
+	dataMap.put("Sample_Collection_ID",ifnull(getsampleDetails.getJson("Name"),""));
+	dataMap.put("Government_Officer_Name",ifnull(getsampleDetails.getJson("Government_Officer_Name"),""));
+	dataMap.put("Department_Authority",ifnull(getsampleDetails.getJson("Department_Authority"),""));
+	dataMap.put("Officer_Email",ifnull(getsampleDetails.getJson("Officer_Email"),""));
+	collectionDate = "";
+	if(getsampleDetails.getJSON("Collection_Date") != null)
+	{
+		collectionDate = getsampleDetails.getJSON("Collection_Date").toString("dd-MMM-yyyy");
+	}
+	dataMap.put("Collection_Date",collectionDate);
+	dataMap.put("Govt_Letter_Reference_No",ifnull(getsampleDetails.getJson("Govt_Letter_Reference_No"),""));
+	dataMap.put("State",ifnull(getsampleDetails.getJson("State"),""));
+	dataMap.put("Remarks_Notes",ifnull(getsampleDetails.getJson("Remarks_Notes"),""));
+	/*********************************************Get Region *****************************************************************/
+	if(region != null)
+	{
+		RegionId = region.getJSON("id");
+		if(RegionId != null)
+		{
+			getRData = zoho.crm.getRecordById("Region_Master",RegionId);
+			if(getRData.isEmpty() == false)
+			{
+				RId = getRData.getJSON("Creator_record_Id");
+				if(RId != null && RId != "")
+				{
+					dataMap.put("Region",RId);
+				}
+			}
+		}
+	}
+	/*********************************************Get Territory *****************************************************************/
+	if(territory != null)
+	{
+		territoryId = territory.getJSON("id");
+		if(territoryId != null)
+		{
+			getData = zoho.crm.getRecordById("Sub_Territory",territoryId);
+			if(getData.isEmpty() == false)
+			{
+				territoryId = getData.getJSON("Creator_rec_id");
+				if(territoryId != null && territoryId != "")
+				{
+					dataMap.put("Territory",territoryId);
+				}
+			}
+		}
+	}
+	/*********************************************Get Distributor *****************************************************************/
+	accid = null;
+	accountName = getsampleDetails.getJson("Distributor_Dealer_Name");
+	if(accountName.isEmpty() == false)
+	{
+		accid = accountName.get("id");
+		accountData = zoho.crm.getRecordById("Accounts",accid);
+		if(accountData.isEmpty() == false)
+		{
+			creatorIdd = accountData.getJSON("Creator_record_Id");
+			if(creatorIdd != null)
+			{
+				dataMap.put("Distributor_Dealer_Name",creatorIdd);
+			}
+			else
+			{
+				getContact = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Distributor_Masters","(Account_CRM_record_ID == \"" + accid.toString() + "\")",1,200,"creator_con");
+				if(getContact.get("code") == 3000)
+				{
+					data = getContact.get("data");
+					accID1 = data.getJson("ID");
+					dataMap.put("Distributor_Dealer_Name",ifnull(accID1,null));
+				}
+			}
+		}
+		//sendSMS code start here 
+		ownerEmail = getsampleDetails.getJson("Owner").get("email");
+		searchCriteria = "(Email:equals:" + ownerEmail + ")";
+		ownrPho = "";
+		getemployee = zoho.crm.searchRecords("Employee_Master",searchCriteria);
+		if(getemployee != null && getemployee.size() > 0)
+		{
+			ownrPhone = getemployee.getJson("Mobile_No");
+			if(ownrPhone.isEmpty() == false)
+			{
+				ownrPho = right(ownrPhone,10);
+			}
+		}
+		Payload = {"template_id":"69d78af9e046378fd904f9c3","short_url":"0","short_url_expiry":"","realTimeResponse":"1","recipients":{{"mobiles":"91" + ownrPho,"Distributor_Name":ifnull(accountName,""),"RequestID":ifnull(getsampleDetails.getJson("Name"),"")}}};
+		header = Map();
+		header.put("Accept","application/json");
+		header.put("authkey","506742AeM4FBCH69d505a4P1");
+		header.put("Content-Type","application/json");
+		if(ownrPho.isEmpty() == false)
+		{
+			sendSMS = invokeurl
+			[
+				url :"https://control.msg91.com/api/v5/flow"
+				type :POST
+				parameters:Payload.toString()
+				headers:header
+			];
+			info sendSMS;
+		}
+		//send sms code end here 
+	}
+	/*********************************************Get Subform Data ****************************************/
+	Ordered_Items = getsampleDetails.getJson("Product_Line_Items");
+	if(Ordered_Items.isEmpty() == false)
+	{
+		proList = List();
+		for each  item in Ordered_Items
+		{
+			proMap = Map();
+			/*********************************************Get Brand *****************************************************************/
+			BrandId = null;
+			BrandName = Ordered_Items.getJson("Product");
+			if(BrandName.isEmpty() == false)
+			{
+				brdId = BrandName.get("id");
+				getbrand = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Brand_Masters","(zoho_crm_id == \"" + brdId.toString() + "\")",1,200,"creator_con");
+				if(getbrand.get("code") == 3000)
+				{
+					data = getbrand.get("data");
+					brandID1 = data.getJson("ID");
+					proMap.put("Product",ifnull(brandID1,null));
+				}
+				else
+				{
+					brandData = zoho.crm.getRecordById("Brand_Master",brdId);
+					if(brandData.isEmpty() == false)
+					{
+						creatorBIdd = brandData.getJSON("Creator_rec_id");
+						if(creatorBIdd != null)
+						{
+							proMap.put("Product",creatorBIdd);
+						}
+					}
+				}
+			}
+			proMap.put("Batch_Number",item.getJSON("Batch_Number1"));
+			proMap.put("Technical_Composition",item.getJSON("Technical_Composition"));
+			proMap.put("SKU",item.getJSON("SKU1"));
+			proMap.put("Quantity",item.getJSON("Total_Quantity"));
+			proMap.put("Remarks",item.getJSON("Remarks"));
+			proMap.put("Manufactured_by",item.getJSON("Manufactured_by"));
+			if(item.getJSON("Expiry") != null)
+			{
+				expDate = item.getJSON("Expiry").toString("dd-MMM-yyyy");
+				proMap.put("Expiry",expDate);
+			}
+			if(item.getJSON("Mfg_Date") != null)
+			{
+				mfgDate = item.getJSON("Mfg_Date").toString("dd-MMM-yyyy");
+				proMap.put("Mfg_Date",mfgDate);
+			}
+			proList.add(proMap);
+		}
+		dataMap.put("Products",proList);
+	}
+	// 	info dataMap;
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	getSamplefromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Sample_Collection_Reports","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+	info getSamplefromCreator;
+	othermap = Map();
+	if(getSamplefromCreator.get("code") == 3000)
+	{
+		info "Update";
+		creatorRecordID = getSamplefromCreator.get("data").getJSON("ID");
+		Updateprod = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Sample_Collection_Reports",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",Updateprod);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		info "Test";
+		CreateSample = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Sample_Collection_Report",dataMap,othermap,"creator_con");
+		info CreateSample;
+		syncc.put("Function_Response",CreateSample);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateSample.get("code") == 3000)
+		{
+			info CreateSample;
+			updateCRM = Map();
+			creatorRecordID = CreateSample.get("data").get("ID");
+			updateCRM.put("Creator_Rec_Id",CreateSample.get("data").get("ID"));
+			updatecreatorID = zoho.crm.updateRecord("Sample_Collection_Report",id,updateCRM);
+		}
+	}
+	/*********************************************Upload Govt Letter *****************************************/
+	info "Govt Letter Upload: " + govtLetter;
+	if(govtLetter != null)
+	{
+		fileId = govtLetter.getJSON("File_Id__s");
+		info fileId;
+		downloaded_file = invokeurl
+		[
+			url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+			type :GET
+			connection:"zohocrm"
+		];
+		downloaded_file.setParamName("file");
+		if(downloaded_file.isEmpty() == false)
+		{
+			upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/All_Sample_Collection_Reports/" + creatorRecordID + "/Govt_Letter_Upload/upload";
+			response = invokeurl
+			[
+				url :upload_url
+				type :POST
+				files:downloaded_file
+				connection:"creator_con"
+			];
+			info response;
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

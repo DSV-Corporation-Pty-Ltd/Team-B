@@ -1,0 +1,192 @@
+void automation.Send_email_to_reporting_manager(Int id)
+{
+repPersEmail = "";
+attachIdd = null;
+alist = List();
+// data = zoho.crm.getRecordById("Incident_Reporting",id);
+// info data;
+resp = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Incident_Reporting/" + id
+	type :GET
+	connection:"zohocrm"
+];
+info resp;
+data = resp.get("data").get(0);
+getowner = data.getJSON("Owner").get("id");
+info getowner;
+if(getowner != null && getowner != "")
+{
+	getUser = zoho.crm.getRecordById("users",getowner);
+	info getUser;
+	if(getUser.isEmpty() == false)
+	{
+		info getUser;
+		getUserr = getUser.get("users").get(0);
+		getReportingPerson = getUserr.get("Reporting_To");
+		if(getReportingPerson.isEmpty() == false)
+		{
+			getRId = getReportingPerson.getJSON("id");
+			if(getRId.isEmpty() == false)
+			{
+				getRPerson = zoho.crm.getRecordById("users",getRId);
+				info getRPerson;
+				if(getRPerson.isEmpty() == false)
+				{
+					getRepRec = getRPerson.get("users").get(0);
+					getemail = getRepRec.getJSON("email");
+					if(getemail.isNull() == false)
+					{
+						repPersEmail = getemail;
+					}
+				}
+			}
+		}
+	}
+}
+AssetType = data.getJSON("Asset_Type");
+info AssetType;
+assetId = data.getJSON("Asset").getJSON("id");
+getAssetData = zoho.crm.getRecordById("Asset_Master",assetId);
+info getAssetData;
+/***********************************Prepare the Record Pdf File*************************************/
+url = "https://www.zohoapis.in/crm/v8/Incident_Reporting/" + id + "/actions/download_mail_merge";
+mailMergeTemplate = Map();
+mailMergeTemplate.put("name","Incident Details Doc");
+downloadObj = Map();
+downloadObj.put("mail_merge_template",mailMergeTemplate);
+downloadObj.put("output_format","pdf");
+downloadObj.put("file_name","Incident Details");
+mainList = list();
+mainList.add(downloadObj);
+inputMap = Map();
+inputMap.put("download_mail_merge",mainList);
+RecordDetails = invokeurl
+[
+	url :url
+	type :POST
+	parameters:inputMap.toString()
+	connection:"zohocrm"
+];
+info RecordDetails;
+attachfile = zoho.crm.attachFile("Incident_Reporting",id,RecordDetails);
+info attachfile;
+if(attachfile.get("code") == "SUCCESS")
+{
+	attachIdd = attachfile.get("details").getJSON("id");
+	if(attachIdd != null && attachIdd != "")
+	{
+		getAttachments = zoho.crm.getRelatedRecords("Attachments","Incident_Reporting",id);
+		if(getAttachments.size() > 0)
+		{
+			for each  rec in getAttachments
+			{
+				if(rec.getJSON("id") == attachIdd)
+				{
+					actualfileId = rec.getJSON("$file_id");
+					if(actualfileId != null)
+					{
+						mps = Map();
+						mps.put("id",actualfileId);
+						alist.add(mps);
+					}
+				}
+			}
+		}
+	}
+}
+/***********************************Get Driver Liscense File*************************************/
+driverLiscence = getAssetData.getJSON("Driver_Liscense");
+info driverLiscence;
+if(!driverLiscence.isEmpty() && driverLiscence != null)
+{
+	mps1 = Map();
+	getAttachId = driverLiscence.get(0).getJSON("file_Id");
+	mps1.put("id",getAttachId);
+	alist.add(mps1);
+}
+/***********************************Get Insurance File*************************************/
+Insurance = getAssetData.getJSON("Insurance");
+info Insurance;
+if(!Insurance.isEmpty() && Insurance != null)
+{
+	mps2 = Map();
+	getAttachmentId = Insurance.get(0).getJSON("file_Id");
+	mps2.put("id",getAttachmentId);
+	alist.add(mps2);
+}
+/***********************************Get All Supported Documents************************************************/
+SupportedDocs = data.getJSON("Supporting_Evidence1");
+info SupportedDocs;
+if(!SupportedDocs.isEmpty() && SupportedDocs != null)
+{
+	for each  recordd in SupportedDocs
+	{
+		info "File IDSSS:" + recordd.getJSON("File_Id__s");
+		mps3 = Map();
+		mps3.put("id",recordd.getJSON("File_Id__s"));
+		alist.add(mps3);
+	}
+}
+/*********************************************Prepare data for send mail***********************************************/
+if(repPersEmail != null && repPersEmail != "")
+{
+	sendto = Map();
+	sendto.put("email",repPersEmail);
+	//sendto.put("email","neeru@fidigital.ae");
+	tolist = List();
+	tolist.add(sendto);
+	sendfrom = Map();
+	sendfrom.put("email","zohoadmin@gharda.com");
+	tempmp = Map();
+	tempmp.put("id","1000823000000728860");
+	//email template id
+	mp = Map();
+	mp.put("from",sendfrom);
+	mp.put("to",tolist);
+	mp.put("template",tempmp);
+	mp.put("attachments",alist);
+	mp.put("org_email",false);
+	dlist = List();
+	dlist.add(mp);
+	data = Map();
+	data.put("data",dlist);
+	info data;
+	/**************************Send Mail with Supported Documents and attachments ***************/
+	sendmail = invokeurl
+	[
+		url :"https://www.zohoapis.in/crm/v5/Incident_Reporting/" + id + "/actions/send_mail"
+		type :POST
+		parameters:data + ""
+		connection:"zohocrm"
+	];
+	info sendmail;
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Incident Reporting";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	//syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","Send Email to Reporting Manager");
+	//Function Name
+	syncc.put("Function_Response",sendmail);
+	//Function Response
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	//Execution Time 
+	syncc.put("Trigger_Type","Create");
+	//Trigger  
+	info zoho.crm.createRecord("Log_Master",syncc);
+	/**************************Delete the Uploaded file from Crm attachments***************/
+	if(attachIdd != null)
+	{
+		DeleteFile = invokeurl
+		[
+			url :"https://www.zohoapis.in/crm/v8/Incident_Reporting/" + id + "/Attachments/" + attachIdd + ""
+			type :DELETE
+			connection:"zohocrm"
+		];
+		info DeleteFile;
+	}
+}
+}

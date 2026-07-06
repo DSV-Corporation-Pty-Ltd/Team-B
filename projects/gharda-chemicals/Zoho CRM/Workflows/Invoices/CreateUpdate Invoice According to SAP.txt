@@ -1,0 +1,242 @@
+void automation.UpdateDataInInvoicesWhenDataAddedFromSAP(Int id)
+{
+InvoiceData = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Invoices/" + id
+	type :GET
+	connection:"zohocrm"
+];
+data = InvoiceData.get("data").get(0);
+datamap = Map();
+datamap.put("Status","Approved");
+datamap.put("Invoice_Date",toString(zoho.currentdate,"yyyy-MM-dd"));
+if(data != null)
+{
+	/******** SUBJECT → ACCOUNT MAPPING ********/
+	subject = data.get("Subject").trim();
+	subjectParts = subject.toList(" ");
+	sapIdRaw = subjectParts.get(subjectParts.size() - 1).trim();
+	finalSapId = "";
+	// Count leading zeros
+	zeroCount = 0;
+	for each  c in sapIdRaw.toList("")
+	{
+		if(c == "0")
+		{
+			zeroCount = zeroCount + 1;
+		}
+		else
+		{
+			break;
+		}
+	}
+	// Apply your logic
+	if(zeroCount == 3)
+	{
+		// 3 starting zeros → take last 7 digits
+		finalSapId = sapIdRaw.right(7);
+	}
+	else if(zeroCount == 2)
+	{
+		// 2 starting zeros → take last 8 digits
+		finalSapId = sapIdRaw.right(8);
+	}
+	else if(zeroCount == 1)
+	{
+		// 1 starting zero → take last 9 digits
+		finalSapId = sapIdRaw.right(9);
+	}
+	else
+	{
+		// No leading zero → keep as-is
+		finalSapId = sapIdRaw;
+	}
+	if(finalSapId != null && finalSapId != "")
+	{
+		accSearch = zoho.crm.searchRecords("Accounts","(SAP_ID:equals:" + finalSapId + ")");
+		if(accSearch != null && accSearch.size() > 0)
+		{
+			accData = accSearch.get(0);
+			accID = accData.get("id");
+			accName = accData.get("Account_Name");
+			if(accID != null)
+			{
+				name = accName + " - Invoice";
+				datamap.put("Subject",name);
+				datamap.put("Account_Name",accID);
+			}
+		}
+	}
+	/******** INVOICE LINE ITEMS ********/
+	getInvoicedItems = data.get("Invoiced_Items");
+	if(getInvoicedItems != null && getInvoicedItems.size() > 0)
+	{
+		salesDoc = "";
+		isSameSalesDoc = true;
+		isValidProduct = true;
+		/******** VALIDATION LOOP ********/
+		for each  li_Item in getInvoicedItems
+		{
+			/******** PRODUCT VALIDATION ********/
+			if(li_Item.get("Product_Name") != null)
+			{
+				productObj = li_Item.get("Product_Name");
+				productId = productObj.get("id");
+				if(productId == null || productId.toLong() != 1000823000021784836)
+				{
+					isValidProduct = false;
+				}
+			}
+			else
+			{
+				isValidProduct = false;
+			}
+			/******** SALES DOCUMENT VALIDATION ********/
+			currentDoc = li_Item.get("Sales_Document");
+			if(currentDoc != null)
+			{
+				if(salesDoc == "")
+				{
+					salesDoc = currentDoc;
+				}
+				else
+				{
+					if(salesDoc != currentDoc)
+					{
+						isSameSalesDoc = false;
+					}
+				}
+			}
+		}
+		info "Product Validation : " + isValidProduct;
+		info "Sales Document Validation : " + isSameSalesDoc;
+		/******** SALES ORDER SEARCH ********/
+		if(isValidProduct == true && isSameSalesDoc == true && salesDoc != "")
+		{
+			searchCriteria = "(SAP_No:equals:" + salesDoc.toNumber() + ")";
+			searchSalesOrder = zoho.crm.searchRecords("Sales_Orders",searchCriteria);
+			if(searchSalesOrder != null && searchSalesOrder.size() > 0)
+			{
+				SOData = searchSalesOrder.get(0);
+				SOId = SOData.get("id");
+				datamap.put("Sales_Order",SOId);
+				/******** GET SALES ORDER ********/
+				soData = invokeurl
+				[
+					url :"https://www.zohoapis.in/crm/v8/Sales_Orders/" + SOId
+					type :GET
+					connection:"zohocrm"
+				];
+				getSO = soData.get("data").get(0);
+				info "Get So:" + getSO;
+				if(getSO != null)
+				{
+					/******** DISTRIBUTOR ********/
+					getDistributor = getSO.get("Account_Name");
+					if(getDistributor != null)
+					{
+						datamap.put("Account_Name",getDistributor.get("id"));
+					}
+					/******** TAX ********/
+					if(getSO.get("GST") != null)
+					{
+						datamap.put("GST",getSO.get("GST"));
+					}
+					if(getSO.get("IGST") != null)
+					{
+						datamap.put("IGST",getSO.get("IGST"));
+					}
+					if(getSO.get("SGST") != null)
+					{
+						datamap.put("SGST",getSO.get("SGST"));
+					}
+					/******** SALES ORDER LINE ITEMS ********/
+					soLineItems = getSO.get("Ordered_Items");
+					if(soLineItems.isEmpty() == false && soLineItems.size() > 0)
+					{
+						info soLineItems;
+						info "Test Line Items";
+						lineItems = List();
+						/******** MATCH EACH INVOICE ITEM ********/
+						for each  li_Item in getInvoicedItems
+						{
+							prod = Map();
+							/******** STORE EXISTING LINE ITEM ID ********/
+							if(li_Item.get("id") != null)
+							{
+								prod.put("id",li_Item.get("id"));
+							}
+							sapItem = li_Item.get("Sales_Document_Item");
+							if(sapItem != null && sapItem != "")
+							{
+								serialNo = sapItem.toLong() / 10;
+								info "Serial Number:" + serialNo;
+								/******** MATCH WITH SO SEQUENCE ********/
+								for each  soItem in soLineItems
+								{
+									seqNo = soItem.get("Sequence_Number");
+									if(seqNo != null && seqNo.toLong() == serialNo)
+									{
+										info "Seq Number:" + seqNo;
+										info "serialNo Number:" + serialNo;
+										if(soItem.get("Product_Name") != null)
+										{
+											prod.put("Product_Name",soItem.get("Product_Name").get("id"));
+										}
+										prod.put("Product_Code",soItem.get("Product_Code"));
+										prod.put("Price",soItem.get("Billing_Price"));
+										prod.put("Quantity",soItem.get("Quantity"));
+										// 										prod.put("Discount",soItem.get("Price"));
+										prod.put("Discount_Price",soItem.get("Price"));
+										prod.put("Discount_Value",ifnull(soItem.get("Price").round(2),0));
+										prod.put("SKU",soItem.get("SKU"));
+										/******** PRESERVE SAP FIELDS ********/
+										prod.put("Sales_Document",li_Item.get("Sales_Document"));
+										prod.put("Sales_Document_Item",li_Item.get("Sales_Document_Item"));
+										lineItems.add(prod);
+										break;
+									}
+								}
+							}
+						}
+						if(lineItems.size() > 0)
+						{
+							datamap.put("Invoiced_Items",lineItems);
+						}
+					}
+					datamap.put("Owner",SOData.getJSON("Owner"));
+				}
+				/******** UPDATE INVOICE ********/
+				info datamap;
+				if(datamap.size() > 0)
+				{
+					triggerList = List();
+					triggerList.add("workflow");
+					dataList = List();
+					datamap.put("id",id);
+					dataList.add(datamap);
+					param = Map();
+					param.put("data",dataList);
+					param.put("trigger",triggerList);
+					updateresp = invokeurl
+					[
+						url :"https://www.zohoapis.in/crm/v8/Invoices"
+						type :PUT
+						parameters:param.toString()
+						connection:"zohocrm"
+					];
+					info updateresp;
+				}
+			}
+			else
+			{
+				info "No Sales Order found for SAP_No : " + salesDoc;
+			}
+		}
+		else
+		{
+			info "Validation failed.";
+		}
+	}
+}
+}

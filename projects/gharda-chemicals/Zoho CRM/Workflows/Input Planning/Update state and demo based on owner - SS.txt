@@ -1,0 +1,23 @@
+void automation.update_state_depo_ss(Int ownerid,Int id)
+{
+getownerdetails = zoho.crm.getRecordById("users",ownerid);
+useremail = getownerdetails.get("users").getjson("email");
+optmap = Map();
+searchrec = zoho.crm.searchRecords("Employee_Master","Email:equals:" + useremail,1,200,optmap,"zohocrm");
+if(searchrec.size() > 0)
+{
+	upmap = Map();
+	recid = searchrec.getjson("id");
+	getemployeedetails = zoho.crm.getRecordById("Employee_Master",recid);
+	empstate = getemployeedetails.get("State");
+	empplant = getemployeedetails.get("Main_Plant");
+	if(!isNull(empplant))
+	{
+		empplantname = empplant.get("name");
+		upmap.put("Depot",empplantname);
+	}
+	upmap.put("State",empstate);
+	uprec = zoho.crm.updateRecord("Input_Planning",id,upmap);
+	info uprec;
+}
+}

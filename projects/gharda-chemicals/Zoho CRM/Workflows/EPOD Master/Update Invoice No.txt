@@ -1,0 +1,25 @@
+void automation.UpdateInvoiceNo(Int dispatchID,Int epodID)
+{
+getdispatchdata = zoho.crm.getRecordById("Dispatch_Master",dispatchID);
+if(getdispatchdata.isEmpty() == false)
+{
+	Sales_Order = getdispatchdata.get("Sales_Order");
+	if(Sales_Order.isEmpty() == false)
+	{
+		soID = Sales_Order.get("id");
+		searchResp = zoho.crm.searchRecords("Invoices","(Sales_Order:equals:" + soID + ")",1,10);
+		if(searchResp.isEmpty() == false)
+		{
+			SAP_ID = searchResp.get(0).get("SAP_ID");
+			if(SAP_ID.isEmpty() == false)
+			{
+				updatemap = Map();
+				updatemap.put("Invoice_SAP_ID",SAP_ID);
+				//update = zoho.crm.updateRecord("EPOD_Master",epodID,updatemap);
+				update = zoho.crm.updateRecord("EPOD_Master",epodID,updatemap,{"trigger":{"workflow"}});
+				info update;
+			}
+		}
+	}
+}
+}

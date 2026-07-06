@@ -1,0 +1,91 @@
+void automation.syncMeetingLocationFromAccount(Int meetingId)
+{
+meetingIdStr = ifnull(meetingId,"").toString();
+if(meetingIdStr != "")
+{
+	meetingRec = zoho.crm.getRecordById("Events",meetingIdStr);
+	if(meetingRec != null)
+	{
+		whatObj = meetingRec.get("What_Id");
+		if(whatObj != null)
+		{
+			accId = whatObj.get("id");
+			if(accId != null && accId != "")
+			{
+				accRec = zoho.crm.getRecordById("Accounts",accId);
+				if(accRec != null)
+				{
+					street = ifnull(accRec.get("Billing_Street"),"");
+					city = ifnull(accRec.get("Billing_City"),"");
+					state = ifnull(accRec.get("Billing_State"),"");
+					pincode = ifnull(accRec.get("Billing_Code"),"");
+					country = ifnull(accRec.get("Billing_Country"),"");
+					lat = ifnull(accRec.get("Latitude"),"");
+					lon = ifnull(accRec.get("Longitude"),"");
+					addressStr = "";
+					if(street != "")
+					{
+						addressStr = street;
+					}
+					if(city != "")
+					{
+						if(addressStr == "")
+						{
+							addressStr = city;
+						}
+						else
+						{
+							addressStr = addressStr + ", " + city;
+						}
+					}
+					if(state != "")
+					{
+						if(addressStr == "")
+						{
+							addressStr = state;
+						}
+						else
+						{
+							addressStr = addressStr + ", " + state;
+						}
+					}
+					if(pincode != "")
+					{
+						if(addressStr == "")
+						{
+							addressStr = pincode;
+						}
+						else
+						{
+							addressStr = addressStr + ", " + pincode;
+						}
+					}
+					if(country != "")
+					{
+						if(addressStr == "")
+						{
+							addressStr = country;
+						}
+						else
+						{
+							addressStr = addressStr + ", " + country;
+						}
+					}
+					if(lat != "" && lon != "")
+					{
+						addressStr = addressStr + " | Lat: " + lat + ", Lon: " + lon;
+					}
+					info addressStr;
+					if(addressStr != "")
+					{
+						updateMap = Map();
+						updateMap.put("Venue",addressStr);
+						zoho.crm.updateRecord("Events",meetingIdStr,updateMap);
+						info updateMap;
+					}
+				}
+			}
+		}
+	}
+}
+}

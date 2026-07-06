@@ -1,0 +1,12 @@
+void automation.update_territory_name(Int recid)
+{
+getrec = zoho.crm.getRecordById("Opening_Stock_SO_Wise",recid);
+ownerid = getrec.get("Owner").get("id");
+info ownerid;
+getownerdata = zoho.crm.getRecordById("users",ownerid);
+Territory = getownerdata.get("users").getjson("Territory");
+updatemap = Map();
+updatemap.put("Name",Territory);
+updatered = zoho.crm.updateRecord("Opening_Stock_SO_Wise",recid,updatemap);
+info updatered;
+}

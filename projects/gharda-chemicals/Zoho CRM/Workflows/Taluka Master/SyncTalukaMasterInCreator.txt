@@ -1,0 +1,68 @@
+void automation.SyncTalukaMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Taluka_Master",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Taluka Master";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncTalukaMasterInCreator");
+	//Function Name
+	creatorRecordID = data.get("Creator_rec_id");
+	dataMap = Map();
+	dataMap.put("Taluka_Name",data.getJSON("Name"));
+	dataMap.put("Taluka_Code",data.getJSON("Taluka_Code"));
+	dataMap.put("sync_from_crm",true);
+	othermap = Map();
+	/*********************************************Create/Update Record in Creator*********************/
+	if(creatorRecordID != null)
+	{
+		UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Taluka_Report",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger  
+	}
+	else if(creatorRecordID == null || creatorRecordID == "")
+	{
+		getDatafromCreator = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Taluka_Report","zoho_crm_id == \"" + id.toString() + "\"",0,200,"creator_con");
+		if(getDatafromCreator.get("code") == 3000)
+		{
+			info "Update";
+			recId = getDatafromCreator.get("data").getJson("ID");
+			UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Taluka_Report",recId.toLong(),dataMap,othermap,"creator_con");
+			syncc.put("Function_Response",UpdateData);
+			//Function Response
+			syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+			//Execution Time 
+			syncc.put("Trigger_Type","Update");
+			//Trigger  
+		}
+	}
+	else
+	{
+		dataMap.put("zoho_crm_id",id.toString());
+		CreateData = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Taluka",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateData.get("code") == 3000)
+		{
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateData.get("data").get("ID").toString());
+			creatorRecordID = CreateData.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Taluka_Master",id,updateCRM);
+		}
+	}
+}
+}

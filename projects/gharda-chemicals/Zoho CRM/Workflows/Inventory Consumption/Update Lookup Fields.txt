@@ -1,0 +1,59 @@
+void automation.UpdateLookupFieldsDataInInventoryConsumptionModule(Int id)
+{
+dataMap = Map();
+data = zoho.crm.getRecordById("Inventory_Consumption",id);
+info data;
+if(data.isEmpty() == false)
+{
+	if(data.getJSON("Cost_Center1") != null && data.getJSON("Cost_Center1") != "")
+	{
+		SapId = data.getJSON("Cost_Center1");
+		searchCriteria = "(CNF_SAP_Code:equals:" + SapId + ")";
+		searchCNF = zoho.crm.searchRecords("CF_Master",searchCriteria);
+		if(searchCNF != null && searchCNF.size() > 0)
+		{
+			cnfId = searchCNF.get(0).get("id");
+			info cnfId;
+			if(cnfId != null)
+			{
+				dataMap.put("Cost_Center",cnfId);
+			}
+		}
+	}
+	if(data.getJSON("Material1") != null && data.getJSON("Material1") != "")
+	{
+		materialCode = data.getJSON("Material1");
+		searchCriteria1 = "(Product_Code:equals:" + materialCode + ")";
+		searchMaterial = zoho.crm.searchRecords("Products",searchCriteria1);
+		if(searchMaterial != null && searchMaterial.size() > 0)
+		{
+			materialId = searchMaterial.get(0).get("id");
+			info materialId;
+			if(materialId != null)
+			{
+				dataMap.put("Material",materialId);
+			}
+		}
+	}
+	if(data.getJSON("Plant1") != null && data.getJSON("Plant1") != "")
+	{
+		plantCode = data.getJSON("Plant1");
+		searchCriteria2 = "(Name:equals:" + plantCode + ")";
+		searchPlant = zoho.crm.searchRecords("Plants_Master",searchCriteria2);
+		if(searchPlant != null && searchPlant.size() > 0)
+		{
+			plantId = searchPlant.get(0).get("id");
+			info plantId;
+			if(plantId != null)
+			{
+				dataMap.put("Plant",plantId);
+			}
+		}
+	}
+	if(dataMap.isEmpty() == false)
+	{
+		updateLookupData = zoho.crm.updateRecord("Inventory_Consumption",id,dataMap);
+		info updateLookupData;
+	}
+}
+}

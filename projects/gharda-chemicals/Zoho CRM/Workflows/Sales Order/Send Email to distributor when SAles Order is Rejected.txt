@@ -1,0 +1,53 @@
+void automation.Send_Mail_To_Distributor_On_RejectionOf_SalesOrder(Int accID,String SoNo,Int recordID)
+{
+rejectedComments = "";
+module = "Sales_Orders";
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v5/" + module + "/" + recordID + "/__timeline?filters=%7B%22comparator%22%3A%22equal%22%2C%22field%22%3A%7B%22api_name%22%3A%22source%22%7D%2C%22value%22%3A%22approval_process%22%7D"
+	type :GET
+	connection:"zohocrm"
+];
+info "response : " + response;
+for each  ele in response.get("__timeline")
+{
+	info ele;
+	automationDetails = ele.get("automation_details");
+	if(automationDetails != null)
+	{
+		approvalProcess = automationDetails.get("approval_process");
+		if(approvalProcess != null)
+		{
+			rejectedComments = approvalProcess.get("comments");
+			info "Rejected Comment:" + rejectedComments;
+			rejectedDetails = approvalProcess.get("rejected_details");
+			info "Rejected By : " + rejectedDetails;
+			break;
+		}
+	}
+}
+mp = Map();
+mp.put("Comment",rejectedComments);
+update = zoho.crm.updateRecord("Sales_Orders",recordID,mp);
+info update;
+accObj = zoho.crm.getRecordById("Accounts",accID);
+rejectReason = "Testing the record.";
+if(accObj != null && accObj.isEmpty() == false)
+{
+	distributorName = ifnull(accObj.get("Account_Name"),"Distributor");
+	distributorEmail = ifnull(accObj.get("Account_Email"),"");
+	if(distributorEmail == "")
+	{
+		return;
+	}
+	mailSubject = "Sales Order Rejection - Confirmation";
+	htmlMessage = "<html><body style='font-family:Arial,sans-serif;background-color:#f3f4f6;padding:20px;'><div style='max-width:600px;margin:auto;background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,0.08);'><h2 style='color:#dc2626;text-align:center;margin-top:0;'>Sales Order Rejected</h2><p style='font-size:14px;color:#111827;'>Dear <b>" + distributorName + "</b>,</p><p style='font-size:14px;color:#374151;'>We regret to inform you that the sales order - <b>" + SoNo + "</b> you submitted has been rejected.</p><p style='font-size:14px;color:#dc2626;margin:16px 0;'><b>Status:</b> Rejected</p><p style='font-size:14px;color:#374151;'><b>Reason:</b> " + rejectedComments + "</p></div></body></html>";
+	sendmail
+	[
+		from :zoho.loginuserid
+		to :distributorEmail
+		subject :mailSubject
+		message :htmlMessage
+	]
+}
+}

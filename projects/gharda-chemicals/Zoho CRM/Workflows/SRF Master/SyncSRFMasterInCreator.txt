@@ -1,0 +1,224 @@
+void automation.SyncPolymersSRFInCreator(Int id)
+{
+Get Record Data
+SRFData = invokeurl
+[
+	url httpswww.zohoapis.incrmv8SRF_Master + id
+	type GET
+	connectionzohocrm
+];
+SRFDetails = SRFData.get(data);
+dataMap = Map();
+if(SRFDetails.isEmpty() == false)
+{
+	Log master Info
+	syncc = Map();
+	modulename = SRF Master;
+	syncc.put(Crm_Record_Id,id.toString());
+	syncc.put(Module_Name,modulename);
+	syncc.put(Syncing_To,Creator);
+	syncc.put(Syncing_From,Crm);
+	syncc.put(Name,SyncPolymerAndPigmentSRFInCreator);
+	Function Name
+	layout = SRFDetails.getJSON(Layout).getJSON(id);
+	Polymer data Maping  
+	if(layout == 1000823000001173572)
+	{
+		dataMap.put(Customer_Type,Polymer);
+		if(SRFDetails.getJson(GCL_Representative) != null && SRFDetails.getJson(GCL_Representative).isEmpty() == false)
+		{
+			getUserData = zoho.creator.getRecords(zohoadmin_gharda782,distributor-management-gharda-chemical,All_Users,UserID ==  + SRFDetails.getJson(GCL_Representative).get(id).toString() + ,0,200,creator_con);
+			if(getUserData.get(code) == 3000)
+			{
+				creatorUserID = getUserData.get(data).getJSON(ID);
+				dataMap.put(GCL_Representative1,creatorUserID);
+			}
+		}
+		Get Subform Data 
+		Ordered_Items = SRFDetails.getJson(Free_Sample_Line_Items);
+		if(Ordered_Items.isEmpty() == false)
+		{
+			proList = List();
+			for each  orderItem in Ordered_Items
+			{
+				proMap = Map();
+				productId = orderItem.get(Product).get(id);
+				prodData = zoho.crm.getRecordById(Products,productId);
+				getCreatorId = prodData.getJSON(Creator_record_Id);
+				if(getCreatorId != null)
+				{
+					proMap.put(Product,getCreatorId.toNumber());
+				}
+				else
+				{
+					getproData = zoho.creator.getRecords(zohoadmin_gharda782,distributor-management-gharda-chemical,Product_Masters,(CRM_SO_ID ==  + productId.toString() + ),0,200,creator_con);
+					if(getproData.get(code) == 3000)
+					{
+						proMap.put(Product,getproData.get(data).getJson(ID));
+					}
+				}
+				proMap.put(Qty_in_Kgs,orderItem.getJSON(Qty));
+				proMap.put(Basic_Cost,orderItem.getJSON(Basic_Cost));
+				proMap.put(Other_Cost,orderItem.getJSON(Other_Cost));
+				proMap.put(Transport_Cost,orderItem.getJSON(Transport_Cost));
+				proMap.put(Total_Cost,orderItem.getJSON(Total_Cost));
+				proMap.put(Remarks,orderItem.getJSON(Remarks));
+				proList.add(proMap);
+			}
+			dataMap.put(Free_Sample_Line_Items,proList);
+		}
+		dataMap.put(Potential_Annum,ifnull(SRFDetails.getJson(Potential),));
+		dataMap.put(Potential_Next_Year,ifnull(SRFDetails.getJson(Potential_Next_Year),));
+		Details of Competetor 
+		dataMap.put(Competitor_Name,ifnull(SRFDetails.getJson(Competitor_Name),));
+		dataMap.put(Competitor_Activity,ifnull(SRFDetails.getJson(Competitor_Activity),));
+		dataMap.put(Testing_Details,ifnull(SRFDetails.getJson(Testing_Details),));
+		dataMap.put(Grade_Product_Used,ifnull(SRFDetails.getJson(Grade_Product_Used),));
+		dataMap.put(Bus_NY,ifnull(SRFDetails.getJson(Business_NY),));
+		dataMap.put(Bus_CY,ifnull(SRFDetails.getJson(Business_CY),));
+		dataMap.put(Submitted_Trials,ifnull(SRFDetails.getJson(Submitted_Trials),));
+	}
+	Pigment data Maping  
+	if(layout == 1000823000001174023)
+	{
+		dataMap.put(ISO_Number,ifnull(SRFDetails.getJson(ISO_Number),));
+		dataMap.put(SRF_Number,ifnull(SRFDetails.getJson(SRF_Number),));
+		dataMap.put(Requested_By,ifnull(SRFDetails.getJson(Requested_By),));
+		dataMap.put(Complete_Address,ifnull(SRFDetails.getJson(Complete_Address),));
+		dataMap.put(Purpose,ifnull(SRFDetails.getJson(Purpose),));
+		dataMap.put(STD_Submit,ifnull(SRFDetails.getJson(STD_Submit),));
+		if(SRFDetails.getJson(Sales_Marketing_Person) != null && SRFDetails.getJson(Sales_Marketing_Person).isEmpty() == false)
+		{
+			getUserData = zoho.creator.getRecords(zohoadmin_gharda782,distributor-management-gharda-chemical,All_Users,UserID ==  + SRFDetails.getJson(Sales_Marketing_Person).get(id).toString() + ,0,200,creator_con);
+			if(getUserData.get(code) == 3000)
+			{
+				creatorUserID = getUserData.get(data).getJSON(ID);
+				dataMap.put(Sales_Marketing_Person1,creatorUserID);
+			}
+		}
+		dataMap.put(Customer_Type,Pigment);
+		Get Subform Data 
+		Ordered_Items = SRFDetails.getJson(Details_of_Sample);
+		if(Ordered_Items.isEmpty() == false)
+		{
+			proList = List();
+			for each  orderItem in Ordered_Items
+			{
+				proMap = Map();
+				productId = orderItem.get(Sample_Details).get(id);
+				prodData = zoho.crm.getRecordById(Products,productId);
+				getCreatorId = prodData.getJSON(Creator_record_Id);
+				if(getCreatorId != null)
+				{
+					proMap.put(Sample_Details,getCreatorId.toNumber());
+				}
+				else
+				{
+					getproData = zoho.creator.getRecords(zohoadmin_gharda782,distributor-management-gharda-chemical,Product_Masters,(CRM_SO_ID ==  + productId.toString() + ),0,200,creator_con);
+					if(getproData.get(code) == 3000)
+					{
+						proMap.put(Sample_Details,getproData.get(data).getJson(ID));
+					}
+				}
+				proMap.put(Quantity,orderItem.getJSON(Quantity));
+				proMap.put(Application,orderItem.getJSON(Application));
+				proMap.put(Unit,orderItem.getJSON(UOM));
+				proMap.put(Remarks,orderItem.getJSON(Remarks));
+				proList.add(proMap);
+			}
+			dataMap.put(Details_of_Sample,proList);
+		}
+	}
+	Common  Details 
+	creatorRecordID = SRFDetails.getJson(Creator_Rec_Id);
+	dataMap.put(Order_Number,ifnull(SRFDetails.getJson(So_No),));
+	dataMap.put(zoho_crm_id,ifnull(id.toString(),));
+	dataMap.put(STD_SRF_Number,ifnull(SRFDetails.getJson(Document_Code),));
+	dataMap.put(Contact_Number_Rep,+91 + ifnull(SRFDetails.getJson(Contact_Number_Rep),));
+	dataMap.put(GCL_Project_Name,ifnull(SRFDetails.getJson(GCL_Project_Name),));
+	dataMap.put(Approval_Status,ifnull(SRFDetails.getJson(Status),));
+	Details of OEM  Customer 
+	dataMap.put(OEM_Customer_Name,ifnull(SRFDetails.getJson(Customer_Name),));
+	dataMap.put(Customer_Contact_Number,+91 + ifnull(SRFDetails.getJson(Customer_Contact_Number),));
+	dataMap.put(Customer_Email,ifnull(SRFDetails.getJson(Customer_Email),));
+	dataMap.put(Company_Address,ifnull(SRFDetails.getJson(Company_Address),));
+	dataMap.put(Company_Name,ifnull(SRFDetails.getJson(Company_Name),));
+	dataMap.put(Billing_Address,ifnull(SRFDetails.getJson(Billing_Address),));
+	dataMap.put(Application_Details,ifnull(SRFDetails.getJson(Application_Details),));
+	rDate = ;
+	if(SRFDetails.getJson(Date).isNull() == false)
+	{
+		rDate = SRFDetails.getJson(Date).toString(dd-MMM-yyyy);
+	}
+	dataMap.put(Date_of_Requisition,rDate);
+	Get Contact Person 
+	accid = null;
+	accountName = SRFDetails.getJson(Contact_Person);
+	if(accountName.isEmpty() == false)
+	{
+		accid = accountName.get(id);
+		accountData = zoho.crm.getRecordById(Accounts,accid);
+		if(accountData.isEmpty() == false)
+		{
+			creatorIdd = accountData.getJSON(Creator_record_Id);
+			if(creatorIdd != null)
+			{
+				dataMap.put(Contact_Person,creatorIdd);
+			}
+			else
+			{
+				getContact = zoho.creator.getRecords(zohoadmin_gharda782,distributor-management-gharda-chemical,All_Customers,(zoho_crm_id ==  + accid.toString() + ),1,200,creator_con);
+				if(getContact.get(code) == 3000)
+				{
+					data = getContact.get(data);
+					accID1 = data.getJson(ID);
+					dataMap.put(Contact_Person,ifnull(accID1,null));
+				}
+			}
+		}
+	}
+	info dataMap;
+	othermap = Map();
+	CreateUpdate Record in Creator
+	if(creatorRecordID != null)
+	{
+		getSRF = zoho.creator.getRecordById(zohoadmin_gharda782,distributor-management-gharda-chemical,All_Srf_Masters,creatorRecordID.toNumber(),creator_con);
+	}
+	else
+	{
+		getSRF = zoho.creator.getRecords(zohoadmin_gharda782,distributor-management-gharda-chemical,All_Srf_Masters,zoho_crm_id ==  + id.toString() + ,0,200,creator_con);
+	}
+	othermap = Map();
+	if(getSRF.get(code) == 3000)
+	{
+		info Update;
+		creatorRecordID = getSRF.get(data).getJSON(ID);
+		UpdateData = zoho.creator.updateRecord(zohoadmin_gharda782,distributor-management-gharda-chemical,All_Srf_Masters,creatorRecordID.toLong(),dataMap,othermap,creator_con);
+		syncc.put(Function_Response,UpdateData);
+		Function Response
+		syncc.put(Execution_Time,zoho.currenttime.toString(yyyy-MM-dd'T'HHmmssXXX));
+		Execution Time 
+		syncc.put(Trigger_Type,Update);
+		Trigger
+	}
+	else
+	{
+		CreateSRF = zoho.creator.createRecord(zohoadmin_gharda782,distributor-management-gharda-chemical,SRF_Master,dataMap,othermap,creator_con);
+		syncc.put(Function_Response,CreateSRF);
+		Function Response
+		syncc.put(Execution_Time,zoho.currenttime.toString(yyyy-MM-dd'T'HHmmssXXX));
+		Execution Time 
+		syncc.put(Trigger_Type,Create);
+		Trigger  
+		if(CreateSRF.get(code) == 3000)
+		{
+			info CreateSRF;
+			updateCRM = Map();
+			creatorRecordID = CreateSRF.get(data).get(ID);
+			updateCRM.put(Creator_Rec_Id,CreateSRF.get(data).get(ID));
+			updatecreatorID = zoho.crm.updateRecord(SRF_Master,id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord(Log_Master,syncc);
+}
+}

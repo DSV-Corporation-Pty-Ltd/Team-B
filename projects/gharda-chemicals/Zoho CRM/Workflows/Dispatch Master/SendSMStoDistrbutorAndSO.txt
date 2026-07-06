@@ -1,0 +1,58 @@
+void automation.SendSMStoDistributorAfterDispatchUpdate(Int dispatchID)
+{
+// 	GHARDA CHEMICALS LTD Update: Dispatch status for Order ##OrderID## is now ##DispatchStatus## Expected Delivery: ##ExpectedDeliveryDate##
+getDispatchData = zoho.crm.getRecordById("Dispatch_Master",dispatchID);
+if(getDispatchData.isEmpty() == false)
+{
+	Dispatch_Status = getDispatchData.get("Dispatch_Status");
+	Sales_Order = getDispatchData.get("Sales_Order");
+	SONO = "";
+	if(getDispatchData.isEmpty() == false)
+	{
+		SONO = Sales_Order.get("name");
+	}
+	Delivery = getDispatchData.get("Delivery_Date");
+	Delivery_Date = zoho.currentdate.addWeek(10);
+	if(Delivery.isEmpty() == false)
+	{
+		Delivery_Date = Delivery;
+	}
+	owneremail = getDispatchData.get("Owner").get("email");
+	info owneremail;
+	searchUserData = zoho.crm.searchRecords("Employee_Master","(Email.id:equals:" + owneremail + ")");
+	soPhone = "";
+	if(searchUserData.isEmpty() == false)
+	{
+		info searchUserData;
+		Mobile_No = searchUserData.getJson("Mobile_No");
+		if(Mobile_No.isEmpty() == false)
+		{
+			soPhone = right(Mobile_No,10);
+		}
+	}
+	distid = getDispatchData.get("Distributor").get("id");
+	searchdistData = zoho.crm.getRecordById("Accounts",distid);
+	distPhone = "";
+	if(searchdistData.isEmpty() == false)
+	{
+		disph = searchdistData.get("Phone");
+		if(disph.isEmpty() == false)
+		{
+			distPhone = right(disph,10);
+		}
+	}
+	Payload = {"template_id":"69d78b800d0d4c38cf0d8a63","short_url":"0","short_url_expiry":"","realTimeResponse":"1","recipients":{{"mobiles":"91" + soPhone,"OrderID":ifnull(SONO,""),"ExpectedDeliveryDate":ifnull(Delivery_Date,""),"DispatchStatus":ifnull(Dispatch_Status,"")},{"mobiles":"91" + distPhone,"OrderID":ifnull(SONO,""),"ExpectedDeliveryDate":ifnull(Delivery_Date,""),"DispatchStatus":ifnull(Dispatch_Status,"")}}};
+	header = Map();
+	header.put("Accept","application/json");
+	header.put("authkey","506742AeM4FBCH69d505a4P1");
+	header.put("Content-Type","application/json");
+	sendSMS = invokeurl
+	[
+		url :"https://control.msg91.com/api/v5/flow"
+		type :POST
+		parameters:Payload.toString()
+		headers:header
+	];
+	info sendSMS;
+}
+}

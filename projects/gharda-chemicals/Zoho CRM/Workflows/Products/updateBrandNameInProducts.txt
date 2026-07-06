@@ -1,0 +1,38 @@
+void automation.UpdateBrandInProducts(Int id)
+{
+data = zoho.crm.getRecordById("Products",id);
+info data;
+if(data.isEmpty() == false)
+{
+	brandName = data.get("Brand_Name");
+	info brandName;
+	if(brandName != null && brandName != "")
+	{
+		brandMap = Map();
+		searchCriteria = "(Name:equals:" + brandName + ")";
+		brandRecords = zoho.crm.searchRecords("Brand_Master",searchCriteria);
+		if(brandRecords != null && brandRecords.size() > 0)
+		{
+			brandId = brandRecords.get(0).get("id");
+			if(brandId != null && brandId != "")
+			{
+				brandMap.put("Brand_Name_Master1",brandId);
+				updateProd = zoho.crm.updateRecord("Products",id,brandMap);
+			}
+		}
+		else
+		{
+			mps = Map();
+			mps.put("Name",brandName);
+			createBrand = zoho.crm.createRecord("Brand_Master",mps);
+			info createBrand;
+			if(createBrand.getJSON("id") != null)
+			{
+				brandMap.put("Brand_Name_Master1",createBrand.getJSON("id"));
+				updateProd = zoho.crm.updateRecord("Products",id,brandMap);
+				info updateProd;
+			}
+		}
+	}
+}
+}

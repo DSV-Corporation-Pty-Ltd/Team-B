@@ -1,0 +1,52 @@
+void automation.SyncTerritoryMasterInCreator(Int id)
+{
+data = zoho.crm.getRecordById("Territory_Module",id);
+info data;
+if(data.isEmpty() == false)
+{
+	/*********************************Log master Info*************************************************/
+	syncc = Map();
+	modulename = "Territory";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","Creator");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("Name","SyncTerritoryMasterInCreator");
+	//Function Name
+	creatorRecordID = data.get("Creator_rec_id");
+	territoryName = data.get("Name");
+	dataMap = Map();
+	dataMap.put("Territory_Name",territoryName);
+	/*********************************************Create/Update Record in Creator*********************/
+	othermap = Map();
+	if(creatorRecordID != null)
+	{
+		UpdateData = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","All_Territories",creatorRecordID.toLong(),dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",UpdateData);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Update");
+		//Trigger
+	}
+	else
+	{
+		CreateTerritory = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Territory",dataMap,othermap,"creator_con");
+		syncc.put("Function_Response",CreateTerritory);
+		//Function Response
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		//Execution Time 
+		syncc.put("Trigger_Type","Create");
+		//Trigger  
+		if(CreateTerritory.get("code") == 3000)
+		{
+			info "Create";
+			updateCRM = Map();
+			updateCRM.put("Creator_rec_id",CreateTerritory.get("data").get("ID").toString());
+			creatorRecordID = CreateTerritory.get("data").get("ID");
+			updatecreatorID = zoho.crm.updateRecord("Territory_Module",id,updateCRM);
+		}
+	}
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+}

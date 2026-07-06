@@ -1,0 +1,192 @@
+void automation.Push_Expenses_to_Zoho_Expenses(Int id)
+{
+//id = 1000823000015842009;
+data = zoho.crm.getRecordById("zrouteiqzcrm__Routes",id);
+info data;
+if(data.isEmpty() == false)
+{
+	// =======================
+	// STEP 1: CHECK DISTANCE
+	// =======================
+	distance = ifnull(data.get("zrouteiqzcrmActualTravelDistancekm"),0);
+	if(distance <= 50)
+	{
+		info "Distance less than 50 KM - No expense created";
+		return;
+	}
+	// =======================
+	// STEP 2: USER DETAILS
+	// =======================
+	loginEmail = data.getJSON("Owner").getJSON("email");
+	userResp = zoho.crm.searchRecords("users","(email:equals:" + loginEmail + ")");
+	if(userResp.isEmpty())
+	{
+		info "User not found";
+		return;
+	}
+	userData = userResp.getJson("users").get(0);
+	userName = userData.get("full_name");
+	roleName = userData.get("role").get("name");
+	// =======================
+	// STEP 3: AMOUNT LOGIC
+	// =======================
+	amount = 300;
+	if(roleName == "Area Manager" || roleName == "Regional Manager")
+	{
+		amount = 350;
+	}
+	// =======================
+	// STEP 4: HEADERS
+	// =======================
+	headers = Map();
+	headers.put("X-com-zoho-expense-organizationid","60047789605");
+	// =======================
+	// STEP 5: MERCHANT SEARCH / CREATE
+	// =======================
+	merchantID = "";
+	// Search merchant
+	query = Map();
+	query.put("merchant_name",userName);
+	query.put("page",1);
+	query.put("per_page",200);
+	getMerchant = invokeurl
+	[
+		url :"https://www.zohoapis.in/expense/v1/merchants"
+		type :GET
+		parameters:query
+		headers:headers
+		connection:"zohoexpense"
+	];
+	if(getMerchant.get("code") == 0)
+	{
+		merchants = getMerchant.get("merchants");
+		for each  m in merchants
+		{
+			if(m.get("merchant_name") == userName)
+			{
+				merchantID = m.get("merchant_id");
+				break;
+			}
+		}
+	}
+	// Create if not found
+	if(merchantID == "")
+	{
+		merchantJson = Map();
+		merchantJson.put("merchant_name",userName);
+		merchantJson.put("merchant_code",loginEmail);
+		createMerchant = invokeurl
+		[
+			url :"https://www.zohoapis.in/expense/v1/merchants"
+			type :POST
+			parameters:merchantJson.toString()
+			headers:headers
+			connection:"zohoexpense"
+		];
+		info createMerchant;
+		if(createMerchant.get("code") == 0)
+		{
+			merchantID = createMerchant.get("merchant").get("merchant_id");
+		}
+		else
+		{
+			info "Merchant creation failed";
+			return;
+		}
+	}
+	info "Merchant ID: " + merchantID;
+	// =======================
+	// STEP 6: REPORT NAME
+	// =======================
+	currentdate = zoho.currentdate;
+	monthName = currentdate.toString("MMMM");
+	yearNum = currentdate.getYear();
+	reportName = userName + " - " + monthName + " " + yearNum + "- Report";
+	// =======================
+	// STEP 7: SEARCH REPORT
+	// =======================
+	reportID = "";
+	repQuery = Map();
+	repQuery.put("report_name",reportName);
+	repQuery.put("page",1);
+	repQuery.put("per_page",200);
+	getReport = invokeurl
+	[
+		url :"https://www.zohoapis.in/expense/v1/expensereports"
+		type :GET
+		parameters:repQuery
+		headers:headers
+		connection:"zohoexpense"
+	];
+	if(getReport.get("code") == 0)
+	{
+		reports = getReport.get("expense_reports");
+		for each  r in reports
+		{
+			if(r.get("report_name") == reportName)
+			{
+				reportID = r.get("report_id");
+				break;
+			}
+		}
+	}
+	// =======================
+	// STEP 8: CREATE REPORT IF NOT FOUND
+	// =======================
+	if(reportID == "")
+	{
+		startDate = currentdate.toString("yyyy-MM") + "-01";
+		endDate = currentdate.toString("yyyy-MM-dd");
+		reportJson = Map();
+		reportJson.put("report_name",reportName);
+		reportJson.put("start_date",startDate);
+		reportJson.put("end_date",endDate);
+		createReport = invokeurl
+		[
+			url :"https://www.zohoapis.in/expense/v1/expensereports"
+			type :POST
+			parameters:reportJson.toString()
+			headers:headers
+			connection:"zohoexpense"
+		];
+		info createReport;
+		if(createReport.get("code") == 0)
+		{
+			reportID = createReport.get("expense_report").get("report_id");
+		}
+		else
+		{
+			info "Report creation failed";
+			return;
+		}
+	}
+	info "Report ID: " + reportID;
+	// =======================
+	// STEP 9: CREATE EXPENSE
+	// =======================
+	expenseMap = Map();
+	expenseMap.put("date",currentdate.toString("yyyy-MM-dd"));
+	expenseMap.put("report_id",reportID);
+	expenseMap.put("merchant_id",merchantID);
+	expenseMap.put("is_reimbursable",true);
+	expenseMap.put("currency_id",2962877000000000064);
+	// Line Items
+	lineList = List();
+	lineItem = Map();
+	lineItem.put("category_id",2962877000000198870);
+	lineItem.put("amount",amount);
+	lineItem.put("description","Travel more than 50 KM");
+	lineList.add(lineItem);
+	expenseMap.put("line_items",lineList);
+	// API Call
+	createExpense = invokeurl
+	[
+		url :"https://www.zohoapis.in/expense/v1/expenses"
+		type :POST
+		parameters:expenseMap.toString()
+		headers:headers
+		connection:"zohoexpense"
+	];
+	info createExpense;
+}
+}

@@ -1,0 +1,419 @@
+void automation.SyncLiquidationAgentMasterInCreator(Int liquidId)
+{
+/*********************************Fetch CRM Record*************************************************/
+crmResp = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v8/Liquidation_Agent_Master/" + liquidId
+	type :GET
+	connection:"zohocrm"
+];
+info crmResp;
+dataList = ifnull(crmResp.get("data"),List());
+if(dataList.size() == 0)
+{
+	info "No record found in CRM for id: " + liquidId;
+	return;
+}
+details = dataList.get(0);
+info details;
+if(details.isEmpty())
+{
+	info "Empty record details for id: " + liquidId;
+	return;
+}
+approvalState = ifnull(details.get("$approval_state"),"");
+if(approvalState != "approved")
+{
+	info "Record is not approved. Sync skipped.";
+	info approvalState;
+	return;
+}
+/*********************************Log master Info*************************************************/
+syncc = Map();
+syncc.put("CRM_Record_ID",liquidId.toString());
+syncc.put("Module_Name","Liquidation Agent Master");
+syncc.put("Syncing_To","Creator");
+syncc.put("Syncing_From","Crm");
+syncc.put("Name","SyncLiquidationAgentMasterInCreator");
+/*********************************Read file + lookup fields*************************************************/
+profilePic = details.getJSON("Profile_Pic");
+aadharCard = details.getJSON("Upload_Aadhar_Card");
+panCard = details.getJSON("Upload_Pan_Card");
+resumeFile = details.getJSON("Upload_Resume");
+cancelCheque = details.getJSON("Cancel_Cheque_Passbook");
+lastPaySlip = details.getJSON("Last_Pay_Slip");
+drivingLicense = details.getJSON("Driving_License_Attachment");
+creatorRecordID = details.get("Creator_record_Id");
+if(isNull(creatorRecordID) || creatorRecordID == "")
+{
+	getExisting = zoho.creator.getRecords("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent_Master_Report","CRM_Record_ID == \"" + liquidId.toString() + "\"",0,1,"creator_con");
+	if(getExisting.get("code") == 3000)
+	{
+		existingData = getExisting.get("data");
+		if(existingData.size() > 0)
+		{
+			creatorRecordID = existingData.get(0).get("ID");
+			info "Existing Creator Record Found : " + creatorRecordID;
+			// CRM me Creator_record_Id update karo
+			updateMap = Map();
+			updateMap.put("Creator_record_Id",creatorRecordID);
+			zoho.crm.updateRecord("Liquidation_Agent_Master",liquidId,updateMap);
+			info "Duplicate Record Prevented";
+			return;
+		}
+	}
+}
+/*********************************Date Conversion (CRM yyyy-MM-dd -> Creator dd-MMM-yyyy)*************************************************/
+// DOB
+dobOut = "";
+dobRaw = details.get("Date_of_birth");
+if(dobRaw != "")
+{
+	dobOut = dobRaw.toString("dd-MMM-yyyy");
+}
+// Joining Date
+joinOut = "";
+joinRaw = details.get("Joining_Date");
+if(joinRaw != null)
+{
+	joinOut = joinRaw.toString("dd-MMM-yyyy");
+}
+resignOut = "";
+resignRaw = details.get("Resignation_Date");
+if(resignRaw != null)
+{
+	resignOut = resignRaw.toString("dd-MMM-yyyy");
+}
+/*********************************Build Creator Map*************************************************/
+liquidmap = Map();
+liquidmap.put("Name",ifnull(details.get("Name"),""));
+liquidmap.put("Email",ifnull(details.get("Email"),""));
+liquidmap.put("Contact_Number","+91" + ifnull(details.get("Contact_Number"),""));
+liquidmap.put("Father_s_Name",ifnull(details.get("Father_s_Name"),""));
+liquidmap.put("Address_Line_1",ifnull(details.get("Address_Line_1"),""));
+if(dobOut != "")
+{
+	liquidmap.put("Date_of_birth",dobOut);
+}
+liquidmap.put("Aadhar_Card_Number",ifnull(details.get("Aadhar_Card_Number"),""));
+liquidmap.put("Pan_Card_Number",ifnull(details.get("Pan_Card_Number"),""));
+liquidmap.put("Account_No",ifnull(details.get("Account_No"),""));
+liquidmap.put("IFSC_Code",ifnull(details.get("IFSC_Code"),""));
+liquidmap.put("Gross_Salary",ifnull(details.get("Gross_Salary"),""));
+liquidmap.put("Driving_License_No",ifnull(details.get("Driving_License_No"),""));
+if(joinOut != "")
+{
+	liquidmap.put("Joining_Date",joinOut);
+}
+if(resignOut != "")
+{
+	liquidmap.put("Resignation_Date",resignOut);
+}
+liquidmap.put("Headquarter",ifnull(details.get("Headquarter"),""));
+liquidmap.put("CRM_Record_ID",liquidId.toString());
+liquidmap.put("Status",ifnull(details.get("Status"),""));
+liquidmap.put("Code",ifnull(details.get("Code"),""));
+liquidmap.put("Address_Line_2",ifnull(details.get("Address_Line_2"),""));
+liquidmap.put("State_Province",ifnull(details.get("State_Province"),""));
+liquidmap.put("State",ifnull(details.get("State"),""));
+liquidmap.put("City_District",ifnull(details.get("City_District"),""));
+liquidmap.put("Country",ifnull(details.get("Country"),""));
+liquidmap.put("Postal_Code",ifnull(details.get("Postal_Code"),""));
+liquidmap.put("Employment_Status",ifnull(details.get("Employment_Status"),""));
+liquidmap.put("Gender",ifnull(details.get("Gender"),""));
+liquidmap.put("Marital_Status",ifnull(details.get("Marital_Status"),""));
+liquidmap.put("PF_Number",ifnull(details.get("PF_Number"),""));
+liquidmap.put("UAN_No",ifnull(details.get("UAN_No"),""));
+liquidmap.put("Highest_Education_Qualification",ifnull(details.get("Highest_Education_Qualification"),""));
+liquidmap.put("Secondary_Email",ifnull(details.get("Secondary_Email"),""));
+liquidmap.put("Created_By",ifnull(details.get("Created_By"),""));
+liquidmap.put("Modified_By",ifnull(details.get("Modified_By"),""));
+liquidmap.put("Village_Name1",ifnull(details.get("Village_Name1"),""));
+// Zone
+zoneObj = details.getJSON("Zone_Name");
+if(zoneObj != null)
+{
+	liquidmap.put("Zone_Name",zoneObj.getJSON("name"));
+}
+// Region
+regionObj = details.getJSON("Region");
+if(regionObj != null)
+{
+	liquidmap.put("Region",regionObj.getJSON("name"));
+}
+// Territory
+territoryObj = details.getJSON("Territory_Name");
+if(territoryObj != null)
+{
+	liquidmap.put("Territory_Name",territoryObj.getJSON("name"));
+}
+// Sales District
+districtObj = details.getJSON("Sales_District");
+if(districtObj != null)
+{
+	liquidmap.put("Sales_District",districtObj.getJSON("name"));
+}
+//Taluka
+talukaObj = details.getJSON("Taluka_Name");
+if(talukaObj != null)
+{
+	liquidmap.put("Taluka_Name",talukaObj.getJSON("name"));
+}
+// Head Quarter / Village
+villageObj = details.getJSON("Village_Name");
+if(villageObj != null)
+{
+	liquidmap.put("Village_Name",villageObj.getJSON("name"));
+}
+// FA Reporting Manager
+ownerObj = details.getJSON("Owner");
+if(ownerObj != null)
+{
+	liquidmap.put("Owner",ownerObj.getJSON("name"));
+}
+info liquidmap;
+othermap = Map();
+/*********************************************Create / Update Record in Creator*********************/
+if(!isNull(creatorRecordID) && creatorRecordID != "")
+{
+	existing = zoho.creator.getRecordById("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent_Master_Report",creatorRecordID,"creator_con");
+	info existing;
+	if(existing.get("code") == 3100)
+	{
+		// Creator_record_Id present in CRM but record not found in Creator -> recreate
+		CreateDist = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent_Master",liquidmap,othermap,"creator_con");
+		info CreateDist;
+		syncc.put("Function_Response",CreateDist);
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		syncc.put("Trigger_Type","Create");
+		if(CreateDist.get("code") == 3000)
+		{
+			creatorRecordID = CreateDist.get("data").get("ID");
+			updateCRM = Map();
+			updateCRM.put("Creator_record_Id",creatorRecordID);
+			updatecreatorID = zoho.crm.updateRecord("Liquidation_Agent_Master",liquidId,updateCRM);
+			info updatecreatorID;
+		}
+	}
+	else
+	{
+		UpdateDist = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent_Master_Report",creatorRecordID.toLong(),liquidmap,othermap,"creator_con");
+		info UpdateDist;
+		syncc.put("Function_Response",UpdateDist);
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		syncc.put("Trigger_Type","Update");
+	}
+}
+else
+{
+	CreateDist = zoho.creator.createRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Liquidation_Agent_Master",liquidmap,othermap,"creator_con");
+	info CreateDist;
+	syncc.put("Function_Response",CreateDist);
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	syncc.put("Trigger_Type","Create");
+	if(CreateDist.get("code") == 3000)
+	{
+		creatorRecordID = CreateDist.get("data").get("ID");
+		updateCRM = Map();
+		updateCRM.put("Creator_record_Id",creatorRecordID);
+		updatecreatorID = zoho.crm.updateRecord("Liquidation_Agent_Master",liquidId,updateCRM);
+		info updatecreatorID;
+	}
+}
+/*********************************************Upload Files*****************************************/
+if(!isNull(creatorRecordID) && creatorRecordID != "")
+{
+	/*********************************************Profile Photo*****************************************/
+	if(profilePic != null)
+	{
+		fileId = profilePic.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Profile_Pic/upload";
+				profileResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info profileResp;
+			}
+		}
+	}
+	/*********************************************Aadhaar Card*****************************************/
+	if(aadharCard != null)
+	{
+		fileId = aadharCard.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Upload_Aadhar_Card/upload";
+				aadharResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info aadharResp;
+			}
+		}
+	}
+	/*********************************************PAN Card*****************************************/
+	if(panCard != null)
+	{
+		fileId = panCard.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Upload_Pan_Card/upload";
+				panResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info panResp;
+			}
+		}
+	}
+	/*********************************************Resume*****************************************/
+	if(resumeFile != null)
+	{
+		fileId = resumeFile.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Upload_Resume/upload";
+				resumeResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info resumeResp;
+			}
+		}
+	}
+	/*********************************************Cancel Cheque / Passbook*****************************************/
+	if(cancelCheque != null)
+	{
+		fileId = cancelCheque.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Cancel_Cheque_Passbook/upload";
+				cancelResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info cancelResp;
+			}
+		}
+	}
+	/*********************************************Last Pay Slip*****************************************/
+	if(lastPaySlip != null)
+	{
+		fileId = lastPaySlip.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Last_Pay_Slip/upload";
+				payslipResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info payslipResp;
+			}
+		}
+	}
+	/*********************************************Driving License Attachment*****************************************/
+	if(drivingLicense != null)
+	{
+		fileId = drivingLicense.getJSON("File_Id__s");
+		if(fileId != null && fileId != "")
+		{
+			downloaded_file = invokeurl
+			[
+				url :"https://www.zohoapis.in/crm/v8/files?id=" + fileId
+				type :GET
+				connection:"zohocrm"
+			];
+			downloaded_file.setParamName("file");
+			if(downloaded_file.isEmpty() == false)
+			{
+				upload_url = "https://creatorapp.zoho.in/api/v2/zohoadmin_gharda782/distributor-management-gharda-chemical/report/Liquidation_Agent_Master_Report/" + creatorRecordID + "/Driving_License_Attachment/upload";
+				licenseResp = invokeurl
+				[
+					url :upload_url
+					type :POST
+					files:downloaded_file
+					connection:"creator_con"
+				];
+				info licenseResp;
+			}
+		}
+	}
+}
+/*********************************************Log*****************************************/
+logResp = zoho.crm.createRecord("Log_Master",syncc);
+info logResp;
+}

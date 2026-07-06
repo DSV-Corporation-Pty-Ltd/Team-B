@@ -1,0 +1,11 @@
+void automation.UpdateStatusInCreator(Int id,String creatorId,String status)
+{
+if(creatorId != null && creatorId != "")
+{
+	otherMap = Map();
+	datamap = Map();
+	datamap.put("Status",status);
+	UpdateStatusInCreator = zoho.creator.updateRecord("zohoadmin_gharda782","distributor-management-gharda-chemical","Return_Sales_Order_Report",creatorId.toLong(),datamap,otherMap,"creator_con");
+	info UpdateStatusInCreator;
+}
+}

@@ -1,0 +1,153 @@
+void automation.CreateSOCPIAPI(Int id)
+{
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v7/functions/testfunc/actions/execute?auth_type=apikey&zapikey=1003.39fc3833f02c1bdc6b94501fbb49565f.9606408102d38e58538a704592709e01"
+	type :GET
+];
+// if(response.get("code") == "success")
+// {
+Production_Basic_Token = zoho.crm.getOrgVariable("Production_Basic_Token");
+// details = response.get("details");
+// authToken = details.get("output");
+headermap = Map();
+// 	headermap.put("Authorization","Bearer " + authToken.toString());
+headermap.put("Authorization","Basic " + Production_Basic_Token);
+headermap.put("Content-Type","application/json");
+//distributor creation
+getSOData = zoho.crm.getRecordById("Sales_Orders",id);
+info getSOData;
+if(getSOData.isEmpty() == false)
+{
+	// 		json = {"SalesOrderType":"ZDOR","SalesOrganization":"1000","DistributionChannel":"21","OrganizationDivision":"11","CustomerPurchaseOrderType":"","CustomerPurchaseOrderDate":"2026-01-07T00:00:00","SalesOrderDate":"2026-01-07T00:00:00","PricingDate":"2026-01-07T00:00:00","SoldToParty":"202363","PurchaseOrderByShipToParty":"202363","to_Item":{"results":{{"SalesOrderItem":"1","Material":"FGDMB48SL00005L","RequestedQuantity":"1","ProductionPlant":"1003","StorageLocation":"FP01"},{"SalesOrderItem":"2","Material":"FGDMB48SL00005L","RequestedQuantity":"1","ProductionPlant":"1003","StorageLocation":"FP01"}}}};
+	ordermap = Map();
+	OrderType = getSOData.get("Order_Type");
+	if(OrderType == "Cash Advance Order")
+	{
+		ordermap.put("SalesOrderType","ZCBO");
+		paymentTerms = "GG90";
+	}
+	if(OrderType == "Credit Limit Order")
+	{
+		ordermap.put("SalesOrderType","ZCNF");
+		paymentTerms = "ZC01";
+	}
+	accounid = null;
+	SoldToParty = "";
+	PurchaseOrderByShipToParty = "";
+	Division = "";
+	DistributionChannel = "";
+	Sales_Org = "";
+	if(getSOData.get("Account_Name").isEmpty() == false)
+	{
+		accounid = getSOData.get("Account_Name").get("id");
+		getAccData = zoho.crm.getRecordById("Accounts",accounid.toLong());
+		// 			info getAccData;
+		if(getSOData.get("Account_Name").isEmpty() == false)
+		{
+			plant = ifnull(getAccData.get("Delivering_Plant_String").get("name"),"");
+			if(getAccData.get("SAP_ID").isEmpty() == false)
+			{
+				SoldToParty = getAccData.get("SAP_ID");
+			}
+			if(getAccData.get("SAP_ID").isEmpty() == false)
+			{
+				PurchaseOrderByShipToParty = getAccData.get("SAP_ID");
+			}
+		}
+		if(getAccData.get("Division_String").isEmpty() == false)
+		{
+			Division = getAccData.get("Division_String").get("name");
+		}
+		ordermap.put("OrganizationDivision",ifnull(Division,""));
+		// 		ordermap.put("OrganizationDivision","11");
+		if(getAccData.get("Distribution_Channel").isEmpty() == false)
+		{
+			DistributionChannel = getAccData.get("Distribution_Channel");
+		}
+		if(getAccData.get("Sales_Org_String").isEmpty() == false)
+		{
+			Sales_Org = getAccData.get("Sales_Org_String").get("name");
+		}
+	}
+	ordermap.put("SalesOrganization",ifnull(Sales_Org,""));
+	ordermap.put("DistributionChannel",ifnull(DistributionChannel,""));
+	ordermap.put("CustomerPurchaseOrderType","");
+	ordermap.put("PurchaseOrderByCustomer",ifnull(getSOData.get("id"),""));
+	ordermap.put("CustomerPurchaseOrderDate","");
+	ordermap.put("CustomerPaymentTerms",paymentTerms);
+	ordermap.put("SalesOrderDate",ifnull(getSOData.get("Order_Date"),""));
+	ordermap.put("SoldToParty",SoldToParty);
+	ordermap.put("PurchaseOrderByShipToParty",PurchaseOrderByShipToParty);
+	ordermap.put("PricingDate",ifnull(getSOData.get("Price_Date"),""));
+	// 		plant = "";
+	// 		if(getSOData.get("Plant").isEmpty() == false)
+	// 		{
+	// 			plant = getSOData.get("Plant").get("name");
+	// 		}
+	prolist = List();
+	solineItem = getSOData.get("Product_Details");
+	if(solineItem.isEmpty() == false)
+	{
+		Lineitemcount = 0;
+		for each  item in solineItem
+		{
+			Lineitemcount = Lineitemcount + 1;
+			Lineitemcount1 = Lineitemcount * 10;
+			proMap = Map();
+			proMap.put("SalesOrderItem",Lineitemcount1);
+			proMap.put("Material",item.get("product").get("Product_Code"));
+			proMap.put("RequestedQuantity",item.get("quantity"));
+			proMap.put("ProductionPlant",ifnull(plant,""));
+			// 				proMap.put("StorageLocation",ifnull(getSOData.get("Storage"),""));
+			proMap.put("StorageLocation","");
+			proMap.put("PurchaseOrderByShipToParty",ifnull(item.get("id"),""));
+			prolist.add(proMap);
+		}
+	}
+	resultmap = Map();
+	resultmap.put("results",prolist);
+	ordermap.put("to_Item",resultmap);
+	info ordermap;
+	geturl = zoho.crm.getOrgVariable("Sales_Order_Endpoint");
+	CreateSO = invokeurl
+	[
+		url :geturl
+		type :POST
+		parameters:ordermap.toString()
+		headers:headermap
+	];
+	info CreateSO;
+	if(CreateSO.get("Status") == "Success")
+	{
+		SapId = CreateSO.get("Sales Order");
+		update = Map();
+		update.put("SAP_No",SapId.toNumber());
+		resp = zoho.crm.updateRecord("Sales_Orders",id,update,{"trigger":{"workflow"}});
+		errormsg = CreateSO.get("Error Message");
+		info CreateSO;
+	}
+	if(CreateSO.get("Status") == "Failure")
+	{
+		errormsg = CreateSO.get("Error Message");
+		info errormsg;
+	}
+	// 	/*********************************Log master Info*************************************************/
+	// 		ordermap.put("CustomerPaymentTerms",paymentTerms);
+	syncc = Map();
+	modulename = "Sales Order";
+	syncc.put("Crm_Record_Id",id.toString());
+	syncc.put("Module_Name",modulename);
+	syncc.put("Syncing_To","CPI");
+	syncc.put("Syncing_From","Crm");
+	syncc.put("API_URL",geturl);
+	syncc.put("API_Payload",ordermap.toString());
+	syncc.put("Name","CreateSOCPIAPI");
+	syncc.put("Function_Response",CreateSO);
+	syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+	syncc.put("Trigger_Type","Create");
+	syncc.put("Status",CreateSO.get("Status"));
+	info zoho.crm.createRecord("Log_Master",syncc);
+}
+// }
+}

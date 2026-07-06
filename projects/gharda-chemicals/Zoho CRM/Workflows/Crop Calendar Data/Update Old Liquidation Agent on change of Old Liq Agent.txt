@@ -1,0 +1,94 @@
+void automation.get_time_line_of_crop_Calendar(Int recordID)
+{
+module = "Crop_Calendar_Data";
+recordData = zoho.crm.getRecordById("Crop_Calendar_Data",recordID);
+info recordData;
+existingFANameList = List();
+if(recordData.get("Multiple_FA") != null)
+{
+	existingFAString = recordData.get("Multiple_FA");
+	existingFANameList = existingFAString.toString().toList(",");
+	// trim spaces
+	tempList = List();
+	for each  name in existingFANameList
+	{
+		tempList.add(name.trim());
+	}
+	existingFANameList = tempList;
+}
+info "Existing FA List: " + existingFANameList;
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v5/" + module + "/" + recordID + "/__timeline"
+	type :GET
+	connection:"zohocrm"
+];
+info "Full Response: " + response;
+oldFAList = List();
+// Step 1: Store old FA names
+FAIdList = List();
+// Final list for update
+// 🔹 Extract all old FA values
+for each  timeline in response.get("__timeline")
+{
+	fieldHistory = timeline.get("field_history");
+	if(fieldHistory != null)
+	{
+		for each  field in fieldHistory
+		{
+			if(field.get("api_name") == "FA_Responsible")
+			{
+				values = field.get("_value");
+				oldValue = values.get("old");
+				if(oldValue != null && oldValue != "")
+				{
+					oldFAList.add(oldValue);
+				}
+			}
+		}
+	}
+}
+info "Old FA List: " + oldFAList;
+//  Remove duplicates (optional but recommended)
+oldFAList = oldFAList.distinct();
+// Search in Liquidation Agent Master
+for each  faName in oldFAList
+{
+	if(!existingFANameList.contains(faName.trim()))
+	{
+		FARecord = zoho.crm.searchRecords("Liquidation_Agent_Master","(Name:equals:" + faName + ")");
+		if(FARecord != null && FARecord.size() > 0)
+		{
+			FA_Id = FARecord.get(0).get("id");
+			FA_Map = Map();
+			mps = Map();
+			FA_Map.put("id",FA_Id.toLong());
+			mps.put("Multiple_FA",FA_Map);
+			//  Multi-lookup
+			FAIdList.add(mps);
+		}
+	}
+}
+info "Final FAIdList: " + FAIdList;
+if(FAIdList.size() > 0)
+{
+	mpp = Map();
+	FAList = List();
+	mpp.put("Multiple_FA",null);
+	info zoho.crm.updateRecord("Crop_Calendar_Data",recordID,mpp);
+	//  Update CRM Record
+	updateMap = Map();
+	updateMap.put("Multiple_FA",FAIdList);
+	datamap1 = Map();
+	datamap1.put("data",{updateMap});
+	/*******************************************************Update Record in Crm****************************************************/
+	updateresp = invokeurl
+	[
+		url :"https://www.zohoapis.in/crm/v8/Crop_Calendar_Data/" + recordID
+		type :PUT
+		parameters:datamap1.toString()
+		connection:"zohocrm"
+	];
+	info "updateresp" + updateresp;
+}
+}

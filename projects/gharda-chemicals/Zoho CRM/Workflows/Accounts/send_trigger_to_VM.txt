@@ -1,0 +1,12 @@
+void automation.send_trigger_to_VM(Int id)
+{
+hmap = Map();
+hmap.put("X-API-Key","6b1dfc2517e17aaa5df5558aaf86f4419ced36866476e4e57662934403e125e3");
+var = invokeurl
+[
+	url :"https://zoho.gharda.com:14443/production/api/v1/accounts/webhook/sync/" + id
+	type :POST
+	headers:hmap
+];
+info var;
+}

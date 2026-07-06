@@ -1,0 +1,52 @@
+void automation.CreateEPoDCPIAPI(Int id)
+{
+response = invokeurl
+[
+	url :"https://www.zohoapis.in/crm/v7/functions/testfunc/actions/execute?auth_type=apikey&zapikey=1003.39fc3833f02c1bdc6b94501fbb49565f.9606408102d38e58538a704592709e01"
+	type :POST
+];
+if(response.get("code") == "success")
+{
+	details = response.get("details");
+	authToken = details.get("output");
+	headermap = Map();
+	headermap.put("Authorization","Bearer " + authToken.toString());
+	headermap.put("Content-Type","application/json");
+	getEPODData = zoho.crm.getRecordById("EPoD_Master",id);
+	if(getEPODData.isEmpty() == false)
+	{
+		epodmap = Map();
+		epodmap.put("SAP_Billing_ID",ifnull(getEPODData.get("Invoice_SAP_ID"),""));
+		epodmap.put("ePOD_Number",ifnull(getEPODData.get("Name"),""));
+		epodmap.put("ePOD_Date",ifnull(getEPODData.get("EPod_Date"),""));
+		datamap = Map();
+		datamap.put("data",epodmap);
+		info datamap;
+		geturl = zoho.crm.getOrgVariable("EPOD_Endpoint");
+		CreateEpod = invokeurl
+		[
+			url :geturl
+			type :POST
+			parameters:datamap.toString()
+			headers:headermap
+		];
+		info CreateEpod;
+		/*********************************Log master Info*************************************************/
+		syncc = Map();
+		modulename = "EPOD Master";
+		syncc.put("Crm_Record_Id",id.toString());
+		syncc.put("Module_Name",modulename);
+		syncc.put("Syncing_To","CPI");
+		syncc.put("Syncing_From","Crm");
+		// 		syncc.put("API_Payload",datamap.toString());
+		syncc.put("API_URL",geturl.toString());
+		syncc.put("API_payload",datamap.toString());
+		syncc.put("Name","CreateEPoDCPIAPI");
+		syncc.put("Function_Response",CreateEpod);
+		syncc.put("Execution_Time",zoho.currenttime.toString("yyyy-MM-dd'T'HH:mm:ssXXX"));
+		syncc.put("Trigger_Type","Create");
+		syncc.put("Status",CreateEpod.get("Status"));
+		info zoho.crm.createRecord("Log_Master",syncc);
+	}
+}
+}
